@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mxfile host="app.diagrams.net" modified="2026-11-09T09:38:00.000Z" agent="Copilot" version="24.7.17" type="device">
+  <diagram id="pathyatra-er" name="PathYatra ER Diagram">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3600" pageHeight="3000" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="entity-User" value="&lt;b&gt;USER&lt;/b&gt;&lt;hr/&gt;PK id: String&lt;br/&gt;fullName: String&lt;br/&gt;UQ email: String&lt;br/&gt;passwordHash: String&lt;br/&gt;role: UserRole&lt;br/&gt;isActive: Boolean&lt;br/&gt;createdAt: DateTime&lt;br/&gt;updatedAt: DateTime" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=10;spacingRight=10;spacingTop=8;fillColor=#ffffff;strokeColor=#1a73e8;fontColor=#172b4d;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="60" y="100" width="440" height="226" as="geometry"/>
+        </mxCell>
+        <mxCell id="entity-AuditLog" value="&lt;b&gt;AUDITLOG&lt;/b&gt;&lt;hr/&gt;PK id: String&lt;br/&gt;FK adminId: String&lt;br/&gt;action: String&lt;br/&gt;entityType: String&lt;br/&gt;entityId: String?&lt;br/&gt;summary: String&lt;br/&gt;createdAt: DateTime" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=10;spacingRight=10;spacingTop=8;fillColor=#ffffff;strokeColor=#1a73e8;fontColor=#172b4d;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="60" y="620" width="440" height="204" as="geometry"/>
+        </mxCell>
+        <mxCell id="entity-Favorite" value="&lt;b&gt;FAVORITE&lt;/b&gt;&lt;hr/&gt;PK id: String&lt;br/&gt;FK userId: String&lt;br/&gt;FK destinationId: String&lt;br/&gt;UQ (userId, destinationId)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=10;spacingRight=10;spacingTop=8;fillColor=#ffffff;strokeColor=#1a73e8;fontColor=#172b4d;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="780" y="1150" width="440" height="138" as="geometry"/>
+        </mxCell>
+        <mxCell id="entity-SiteSetting" value="&lt;b&gt;SITESETTING&lt;/b&gt;&lt;hr/&gt;PK id: String = &quot;singleton&quot;&lt;br/&gt;siteName: String&lt;br/&gt;contactEmail: String?&lt;br/&gt;contactPhone: String?&lt;br/&gt;featuredDestinationIds: String = &quot;[]&quot;&lt;br/&gt;updatedAt: DateTime" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=10;spacingRight=10;spacingTop=8;fillColor=#ffffff;strokeColor=#1a73e8;fontColor=#172b4d;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1650" width="440" height="182" as="geometry"/>
+        </mxCell>
+        <mxCell id="entity-Itinerary" value="&lt;b&gt;ITINERARY&lt;/b&gt;&lt;hr/&gt;PK id: String&lt;br/&gt;FK userId: String&lt;br/&gt;FK destinationId: String&lt;br/&gt;title: String&lt;br/&gt;startingPoint: String?&lt;br/&gt;startDate: DateTime?&lt;br/&gt;endDate: DateTime?&lt;br/&gt;numTravelers: Int&lt;br/&gt;totalBudget: Float?&lt;br/&gt;status: String = &quot;draft&quot;&lt;br/&gt;createdAt: DateTime" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=10;spacingRight=10;spacingTop=8;fillColor=#ffffff;strokeColor=#1a73e8;fontColor=#172b4d;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="780" y="100" width="440" height="292" as="geometry"/>
+        </mxCell>
+        <mxCell id="entity-Review" value="&lt;b&gt;REVIEW&lt;/b&gt;&lt;hr/&gt;PK id: String&lt;br/&gt;FK userId: String&lt;br/&gt;FK destinationId: String&lt;br/&gt;rating: Int&lt;br/&gt;comment: String?&lt;br/&gt;travelDate: DateTime?&lt;br/&gt;status: ReviewStatus&lt;br/&gt;moderationNote: String?&lt;br/&gt;moderatedAt: DateTime?&lt;br/&gt;moderatedById: String?&lt;br/&gt;createdAt: DateTime" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=10;spacingRight=10;spacingTop=8;fillColor=#ffffff;strokeColor=#1a73e8;fontColor=#172b4d;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="780" y="650" width="440" height="292" as="geometry"/>
+        </mxCell>
+        <mxCell id="entity-ItineraryTemplate" value="&lt;b&gt;ITINERARYTEMPLATE&lt;/b&gt;&lt;hr/&gt;PK id: String&lt;br/&gt;FK destinationId: String? (nullable)&lt;br/&gt;title: String&lt;br/&gt;UQ slug: String&lt;br/&gt;summary: String?&lt;br/&gt;difficulty: String?&lt;br/&gt;durationDays: Int&lt;br/&gt;estimatedCost: Float?&lt;br/&gt;status: ContentStatus&lt;br/&gt;createdAt: DateTime&lt;br/&gt;updatedAt: DateTime" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=10;spacingRight=10;spacingTop=8;fillColor=#ffffff;strokeColor=#1a73e8;fontColor=#172b4d;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="780" y="1320" width="440" height="292" as="geometry"/>
+        </mxCell>
+        <mxCell id="entity-Category" value="&lt;b&gt;CATEGORY&lt;/b&gt;&lt;hr/&gt;PK id: String&lt;br/&gt;name: String&lt;br/&gt;UQ slug: String&lt;br/&gt;description: String?&lt;br/&gt;sortOrder: Int&lt;br/&gt;isActive: Boolean&lt;br/&gt;createdAt: DateTime&lt;br/&gt;updatedAt: DateTime" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=10;spacingRight=10;spacingTop=8;fillColor=#ffffff;strokeColor=#1a73e8;fontColor=#172b4d;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="100" width="440" height="226" as="geometry"/>
+        </mxCell>
+        <mxCell id="entity-Destination" value="&lt;b&gt;DESTINATION&lt;/b&gt;&lt;hr/&gt;PK id: String&lt;br/&gt;FK categoryId: String&lt;br/&gt;name: String&lt;br/&gt;UQ slug: String&lt;br/&gt;province: String?&lt;br/&gt;district: String?&lt;br/&gt;shortDescription: String?&lt;br/&gt;overview: String?&lt;br/&gt;highlights: String?&lt;br/&gt;localFood: String?&lt;br/&gt;travelEssentials: String?&lt;br/&gt;bestSeason: String?&lt;br/&gt;recommendedDurationDays: Int?&lt;br/&gt;difficultyLevel: String&lt;br/&gt;costPerPersonPerDay: Float?&lt;br/&gt;latitude: Float?&lt;br/&gt;longitude: Float?&lt;br/&gt;imagePath: String?&lt;br/&gt;status: ContentStatus&lt;br/&gt;createdAt: DateTime&lt;br/&gt;updatedAt: DateTime" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=10;spacingRight=10;spacingTop=8;fillColor=#ffffff;strokeColor=#1a73e8;fontColor=#172b4d;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="670" width="440" height="512" as="geometry"/>
+        </mxCell>
+        <mxCell id="entity-ItineraryDay" value="&lt;b&gt;ITINERARYDAY&lt;/b&gt;&lt;hr/&gt;PK id: String&lt;br/&gt;FK itineraryId: String&lt;br/&gt;dayNumber: Int&lt;br/&gt;dayDate: DateTime?&lt;br/&gt;notes: String?" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=10;spacingRight=10;spacingTop=8;fillColor=#ffffff;strokeColor=#1a73e8;fontColor=#172b4d;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="1500" y="1430" width="440" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="entity-TemplateDay" value="&lt;b&gt;TEMPLATEDAY&lt;/b&gt;&lt;hr/&gt;PK id: String&lt;br/&gt;FK templateId: String&lt;br/&gt;dayNumber: Int&lt;br/&gt;title: String&lt;br/&gt;description: String?&lt;br/&gt;UQ (templateId, dayNumber)" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=10;spacingRight=10;spacingTop=8;fillColor=#ffffff;strokeColor=#1a73e8;fontColor=#172b4d;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="2250" y="1810" width="440" height="182" as="geometry"/>
+        </mxCell>
+        <mxCell id="entity-DestinationImage" value="&lt;b&gt;DESTINATIONIMAGE&lt;/b&gt;&lt;hr/&gt;PK id: String&lt;br/&gt;FK destinationId: String? (nullable)&lt;br/&gt;url: String&lt;br/&gt;publicId: String&lt;br/&gt;altText: String?&lt;br/&gt;caption: String?&lt;br/&gt;credit: String?&lt;br/&gt;isCover: Boolean&lt;br/&gt;sortOrder: Int&lt;br/&gt;width: Int?&lt;br/&gt;height: Int?&lt;br/&gt;createdAt: DateTime" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=10;spacingRight=10;spacingTop=8;fillColor=#ffffff;strokeColor=#1a73e8;fontColor=#172b4d;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="2250" y="100" width="440" height="314" as="geometry"/>
+        </mxCell>
+        <mxCell id="entity-Activity" value="&lt;b&gt;ACTIVITY&lt;/b&gt;&lt;hr/&gt;PK id: String&lt;br/&gt;FK destinationId: String&lt;br/&gt;name: String&lt;br/&gt;type: ActivityType&lt;br/&gt;description: String?&lt;br/&gt;durationHours: Float?&lt;br/&gt;costEstimate: Float?&lt;br/&gt;costUpdatedAt: DateTime?&lt;br/&gt;difficulty: String?&lt;br/&gt;bestSeason: String?&lt;br/&gt;status: ContentStatus&lt;br/&gt;createdAt: DateTime&lt;br/&gt;updatedAt: DateTime" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=10;spacingRight=10;spacingTop=8;fillColor=#ffffff;strokeColor=#1a73e8;fontColor=#172b4d;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="2250" y="660" width="440" height="336" as="geometry"/>
+        </mxCell>
+        <mxCell id="entity-Place" value="&lt;b&gt;PLACE&lt;/b&gt;&lt;hr/&gt;PK id: String&lt;br/&gt;FK destinationId: String&lt;br/&gt;name: String&lt;br/&gt;type: PlaceType&lt;br/&gt;description: String?&lt;br/&gt;address: String?&lt;br/&gt;phone: String?&lt;br/&gt;website: String?&lt;br/&gt;priceRange: String?&lt;br/&gt;amenities: String?&lt;br/&gt;latitude: Float?&lt;br/&gt;longitude: Float?&lt;br/&gt;status: ContentStatus&lt;br/&gt;createdAt: DateTime&lt;br/&gt;updatedAt: DateTime" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=10;spacingRight=10;spacingTop=8;fillColor=#ffffff;strokeColor=#1a73e8;fontColor=#172b4d;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="2250" y="1220" width="440" height="380" as="geometry"/>
+        </mxCell>
+        <mxCell id="entity-TravelInfo" value="&lt;b&gt;TRAVELINFO&lt;/b&gt;&lt;hr/&gt;PK id: String&lt;br/&gt;FK destinationId: String&lt;br/&gt;title: String&lt;br/&gt;category: String?&lt;br/&gt;content: String&lt;br/&gt;sourceName: String?&lt;br/&gt;sourceUrl: String?&lt;br/&gt;lastVerifiedAt: DateTime?&lt;br/&gt;validFrom: DateTime?&lt;br/&gt;validUntil: DateTime?&lt;br/&gt;statusLabel: TravelInfoStatus&lt;br/&gt;status: ContentStatus&lt;br/&gt;createdAt: DateTime&lt;br/&gt;updatedAt: DateTime" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=10;spacingRight=10;spacingTop=8;fillColor=#ffffff;strokeColor=#1a73e8;fontColor=#172b4d;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="2250" y="2240" width="440" height="358" as="geometry"/>
+        </mxCell>
+        <mxCell id="entity-ItineraryStop" value="&lt;b&gt;ITINERARYSTOP&lt;/b&gt;&lt;hr/&gt;PK id: String&lt;br/&gt;FK dayId: String&lt;br/&gt;timeSlot: String&lt;br/&gt;title: String&lt;br/&gt;description: String?&lt;br/&gt;estimatedCost: Float?&lt;br/&gt;sortOrder: Int" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=10;spacingRight=10;spacingTop=8;fillColor=#ffffff;strokeColor=#1a73e8;fontColor=#172b4d;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="3000" y="100" width="440" height="204" as="geometry"/>
+        </mxCell>
+        <mxCell id="entity-TemplateStop" value="&lt;b&gt;TEMPLATESTOP&lt;/b&gt;&lt;hr/&gt;PK id: String&lt;br/&gt;FK dayId: String&lt;br/&gt;timeSlot: String?&lt;br/&gt;title: String&lt;br/&gt;description: String?&lt;br/&gt;estimatedCost: Float?&lt;br/&gt;sortOrder: Int" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=10;spacingRight=10;spacingTop=8;fillColor=#ffffff;strokeColor=#1a73e8;fontColor=#172b4d;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="3000" y="620" width="440" height="204" as="geometry"/>
+        </mxCell>
+        <mxCell id="relationship-1" value="categorizes" style="rhombus;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#594214;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1645.0" y="531.5" width="150" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-1-a" value="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="entity-Category" target="relationship-1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-1-b" value="0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="relationship-1" target="entity-Destination">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="relationship-2" value="has images" style="rhombus;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#594214;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="2020.0" y="553.5" width="150" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-2-a" value="0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="entity-Destination" target="relationship-2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-2-b" value="0..1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="relationship-2" target="entity-DestinationImage">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="relationship-3" value="offers" style="rhombus;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#594214;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="2020.0" y="839.0" width="150" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-3-a" value="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="entity-Destination" target="relationship-3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-3-b" value="0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="relationship-3" target="entity-Activity">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="relationship-4" value="contains" style="rhombus;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#594214;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="2020.0" y="1130.0" width="150" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-4-a" value="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="entity-Destination" target="relationship-4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-4-b" value="0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="relationship-4" target="entity-Place">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="relationship-5" value="has travel info" style="rhombus;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#594214;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="2020.0" y="1634.5" width="150" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-5-a" value="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="entity-Destination" target="relationship-5">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-5-b" value="0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="relationship-5" target="entity-TravelInfo">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="relationship-6" value="template for" style="rhombus;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#594214;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1285.0" y="1158.0" width="150" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-6-a" value="0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="entity-Destination" target="relationship-6">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-6-b" value="0..1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="relationship-6" target="entity-ItineraryTemplate">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="relationship-7" value="has days" style="rhombus;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#594214;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1660.0" y="1645.5" width="150" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-7-a" value="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="entity-ItineraryTemplate" target="relationship-7">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-7-b" value="0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="relationship-7" target="entity-TemplateDay">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="relationship-8" value="has stops" style="rhombus;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#594214;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="2770.0" y="1273.5" width="150" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-8-a" value="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="entity-TemplateDay" target="relationship-8">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-8-b" value="0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="relationship-8" target="entity-TemplateStop">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="relationship-9" value="admin actions" style="rhombus;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#594214;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="205.0" y="429.5" width="150" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-9-a" value="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="entity-User" target="relationship-9">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-9-b" value="0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="relationship-9" target="entity-AuditLog">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="relationship-10" value="plans" style="rhombus;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#594214;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="565.0" y="191.5" width="150" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-10-a" value="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="entity-User" target="relationship-10">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-10-b" value="0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="relationship-10" target="entity-Itinerary">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="relationship-11" value="trip destination" style="rhombus;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#594214;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1285.0" y="548.0" width="150" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-11-a" value="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="entity-Destination" target="relationship-11">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-11-b" value="0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="relationship-11" target="entity-Itinerary">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="relationship-12" value="has days" style="rhombus;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#594214;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1285.0" y="840.0" width="150" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-12-a" value="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="entity-Itinerary" target="relationship-12">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-12-b" value="0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="relationship-12" target="entity-ItineraryDay">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="relationship-13" value="has stops" style="rhombus;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#594214;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="2395.0" y="818.0" width="150" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-13-a" value="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="entity-ItineraryDay" target="relationship-13">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-13-b" value="0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="relationship-13" target="entity-ItineraryStop">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="relationship-14" value="saves" style="rhombus;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#594214;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="565.0" y="678.0" width="150" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-14-a" value="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="entity-User" target="relationship-14">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-14-b" value="0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="relationship-14" target="entity-Favorite">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="relationship-15" value="is favorited" style="rhombus;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#594214;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1285.0" y="1034.5" width="150" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-15-a" value="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="entity-Destination" target="relationship-15">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-15-b" value="0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="relationship-15" target="entity-Favorite">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="relationship-16" value="writes" style="rhombus;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#594214;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="565.0" y="466.5" width="150" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-16-a" value="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="entity-User" target="relationship-16">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-16-b" value="0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="relationship-16" target="entity-Review">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="relationship-17" value="receives" style="rhombus;whiteSpace=wrap;html=1;align=center;verticalAlign=middle;fillColor=#fff2cc;strokeColor=#d6b656;fontColor=#594214;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1285.0" y="823.0" width="150" height="76" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-17-a" value="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="entity-Destination" target="relationship-17">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge-17-b" value="0..*" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;startArrow=none;strokeColor=#586579;fontSize=12;fontColor=#27364b;" edge="1" parent="1" source="relationship-17" target="entity-Review">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="enum-UserRole" value="&lt;b&gt;ENUM UserRole&lt;/b&gt;&lt;hr/&gt;USER&lt;br/&gt;ADMIN&lt;br/&gt;SUPER_ADMIN" style="shape=note;whiteSpace=wrap;html=1;size=18;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#3c2b45;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="60" y="2260" width="420" height="145" as="geometry"/>
+        </mxCell>
+        <mxCell id="enum-ContentStatus" value="&lt;b&gt;ENUM ContentStatus&lt;/b&gt;&lt;hr/&gt;DRAFT&lt;br/&gt;PUBLISHED&lt;br/&gt;ARCHIVED" style="shape=note;whiteSpace=wrap;html=1;size=18;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#3c2b45;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="530" y="2260" width="420" height="145" as="geometry"/>
+        </mxCell>
+        <mxCell id="enum-ReviewStatus" value="&lt;b&gt;ENUM ReviewStatus&lt;/b&gt;&lt;hr/&gt;PENDING&lt;br/&gt;APPROVED&lt;br/&gt;HIDDEN" style="shape=note;whiteSpace=wrap;html=1;size=18;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#3c2b45;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="2260" width="420" height="145" as="geometry"/>
+        </mxCell>
+        <mxCell id="enum-ActivityType" value="&lt;b&gt;ENUM ActivityType&lt;/b&gt;&lt;hr/&gt;ACTIVITY&lt;br/&gt;ATTRACTION" style="shape=note;whiteSpace=wrap;html=1;size=18;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#3c2b45;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="60" y="2440" width="420" height="145" as="geometry"/>
+        </mxCell>
+        <mxCell id="enum-PlaceType" value="&lt;b&gt;ENUM PlaceType&lt;/b&gt;&lt;hr/&gt;HOTEL&lt;br/&gt;RESTAURANT" style="shape=note;whiteSpace=wrap;html=1;size=18;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#3c2b45;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="530" y="2440" width="420" height="145" as="geometry"/>
+        </mxCell>
+        <mxCell id="enum-TravelInfoStatus" value="&lt;b&gt;ENUM TravelInfoStatus&lt;/b&gt;&lt;hr/&gt;VERIFIED&lt;br/&gt;ESTIMATE&lt;br/&gt;GENERAL_GUIDANCE" style="shape=note;whiteSpace=wrap;html=1;size=18;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;fillColor=#e1d5e7;strokeColor=#9673a6;fontColor=#3c2b45;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="2440" width="420" height="145" as="geometry"/>
+        </mxCell>
+        <mxCell id="diagram-title" value="&lt;b&gt;PathYatra — Logical ER Diagram&lt;/b&gt;&lt;br/&gt;Source: backend/prisma/schema.prisma" style="text;html=1;align=left;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#172b4d;" vertex="1" parent="1">
+          <mxGeometry x="60" y="20" width="1200" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="notation" value="&lt;b&gt;NOTATION&lt;/b&gt;&lt;br/&gt;Blue rectangle = entity / table; fields are listed inside.&lt;br/&gt;PK = primary key; FK = foreign key; UQ = unique constraint; ? = nullable.&lt;br/&gt;Gold diamond = relationship; labels on connecting lines show endpoint cardinality.&lt;br/&gt;Purple note = enum type and allowed values. One-to-many rows can be absent (0..*).&lt;br/&gt;Image/template optional destination FK is shown as 0..1 on that entity end.&lt;br/&gt;Classic attribute symbol: oval (attributes are grouped inside entity boxes for legibility)." style="shape=note;whiteSpace=wrap;html=1;size=18;align=left;verticalAlign=top;spacingLeft=10;spacingTop=8;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="60" y="2050" width="1000" height="170" as="geometry"/>
+        </mxCell>
+        <mxCell id="legend-attribute" value="Attribute" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="2100" width="140" height="60" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
