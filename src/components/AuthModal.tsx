@@ -2,25 +2,20 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowRight,
-  Building2,
   Eye,
   EyeOff,
   Lock,
   Mail,
-  MapPin,
   ShieldCheck,
   User,
   X,
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
-import { ORIGINS } from '../data/taxonomy'
 import { generateStrongPassword } from '../lib/password'
 import { cx } from '../lib/format'
 import logo from '../assets/logo.png'
 import { Modal } from './ui'
 import { PasswordRequirements } from './PasswordRequirements'
-
-const PROVINCES = ['Koshi', 'Madhesh', 'Bagmati', 'Gandaki', 'Lumbini', 'Karnali', 'Sudurpashchim']
 
 function safeInternalPath(next: string | undefined): string | undefined {
   if (!next?.startsWith('/') || next.startsWith('//') || next.includes('\\')) return undefined
@@ -44,9 +39,6 @@ export function AuthModal() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [name, setName] = useState('')
-  const [homeCity, setHomeCity] = useState('Kathmandu')
-  const [province, setProvince] = useState('Bagmati')
-  const [startPoint, setStartPoint] = useState('kathmandu')
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
@@ -100,7 +92,17 @@ export function AuthModal() {
       const signInResult = mode === 'signin' ? await signIn(email, password) : null
       const result =
         signInResult ??
-        (await signUp({ name, email, phone: '', homeCity, province, startPoint }, password))
+        (await signUp(
+          {
+            name,
+            email,
+            phone: '',
+            homeCity: 'Kathmandu',
+            province: 'Bagmati',
+            startPoint: 'kathmandu',
+          },
+          password,
+        ))
 
       if (!result.ok) {
         setFieldErrors(result.fields ?? {})
@@ -376,54 +378,7 @@ export function AuthModal() {
             </div>
 
             {mode === 'signup' ? (
-              <>
-                <PasswordRequirements password={password} onSuggest={suggestPassword} />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="block">
-                    <label htmlFor="auth-home-city" className="field-label">Home city</label>
-                    <span className="relative block">
-                      <MapPin aria-hidden="true" size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-mute" />
-                      <input
-                        id="auth-home-city"
-                        className={inputClass}
-                        value={homeCity}
-                        onChange={(event) => setHomeCity(event.target.value)}
-                        autoComplete="address-level2"
-                      />
-                    </span>
-                  </div>
-                  <div className="block">
-                    <label htmlFor="auth-province" className="field-label">Province</label>
-                    <span className="relative block">
-                      <Building2 aria-hidden="true" size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-mute" />
-                      <select
-                        id="auth-province"
-                        className={cx(inputClass, 'appearance-none')}
-                        value={province}
-                        onChange={(event) => setProvince(event.target.value)}
-                      >
-                        {PROVINCES.map((item) => <option key={item}>{item}</option>)}
-                      </select>
-                    </span>
-                  </div>
-                  <div className="block sm:col-span-2">
-                    <label htmlFor="auth-start-point" className="field-label">Usual starting point</label>
-                    <span className="relative block">
-                      <MapPin aria-hidden="true" size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-mute" />
-                      <select
-                        id="auth-start-point"
-                        className={cx(inputClass, 'appearance-none')}
-                        value={startPoint}
-                        onChange={(event) => setStartPoint(event.target.value)}
-                      >
-                        {ORIGINS.map((origin) => (
-                          <option key={origin.id} value={origin.id}>{origin.name}</option>
-                        ))}
-                      </select>
-                    </span>
-                  </div>
-                </div>
-              </>
+              <PasswordRequirements password={password} onSuggest={suggestPassword} />
             ) : null}
 
             {error ? (

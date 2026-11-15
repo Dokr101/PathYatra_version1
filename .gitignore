@@ -1,1 +1,30 @@
+# Dependencies
+node_modules/
+
+# Production build outputs (kept locally, ignored in git)
+dist/
+backend/dist/
+
+# Environment files
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Scaffolding and temporary artifacts
+.freebuff/
 /freebuff-sites-build/
+bufffree/
+
+# SQLite databases
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+*.local

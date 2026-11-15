@@ -12,7 +12,7 @@ npm install                 # root: Vite, React, concurrently
 cd backend
 npm install                 # API dependencies
 npx prisma migrate dev      # creates prisma/dev.db and applies migrations
-npx prisma db seed          # 4 categories + 10 destinations
+npx prisma db seed          # 4 categories + 18 destinations
 cd ..
 npm run dev                 # Vite on :3000 and the API on :3001
 ```
