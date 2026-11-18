@@ -52,6 +52,8 @@ model User {
   passwordHash String
   role         UserRole @default(USER)
   isActive     Boolean  @default(true)
+  /// Bumped on password change; tokens carrying an older version are rejected.
+  tokenVersion Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @default(now()) @updatedAt
 
@@ -263,6 +265,8 @@ model Itinerary {
   numTravelers  Int            @default(1)
   totalBudget   Float?
   status        String         @default("draft")
+  /// Rich client plan (route, costs, packing, notes) that has no relational home.
+  clientPlan    String?
   createdAt     DateTime       @default(now())
   days          ItineraryDay[]
 }
@@ -313,6 +317,9 @@ model Review {
   moderatedById  String?
   createdAt      DateTime     @default(now())
 
+  /// One review per traveller per destination: the database, not just the API,
+  /// refuses a flooded moderation queue.
+  @@unique([userId, destinationId])
   @@index([destinationId])
   @@index([status])
 }

@@ -13,8 +13,8 @@ async function main() {
       'Set ADMIN_SEED_EMAIL and ADMIN_SEED_PASSWORD before running prisma/seed-admin.ts.',
     )
   }
-  if (password.length < 8) {
-    throw new Error('ADMIN_SEED_PASSWORD must be at least 8 characters.')
+  if (password.length < 12) {
+    throw new Error('ADMIN_SEED_PASSWORD must be at least 12 characters — generate one with: openssl rand -base64 24')
   }
 
   const passwordHash = await bcrypt.hash(password, 10)
