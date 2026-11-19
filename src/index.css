@@ -2,21 +2,43 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-ink: #17150f;
-  --color-ink-soft: #4c463a;
-  --color-ink-mute: #7b7364;
-  --color-paper: #faf6ec;
-  --color-paper-2: #f2ead9;
-  --color-paper-3: #e8ddc7;
-  --color-line: #e0d5bf;
-  --color-pine: #1e3d33;
-  --color-pine-2: #2c5a49;
-  --color-pine-3: #4a7a62;
-  --color-saffron: #d26a38;
-  --color-saffron-soft: #f5dccb;
-  --color-marigold: #e5a93f;
-  --color-clay: #a9533f;
-  --color-mist: #7fa3b5;
+  /*
+   * Minimal palette: one neutral surface, one near-black ink, one accent — the
+   * navy from the PathYatra logo. Three colours, plus white and black.
+   *
+   * Contrast on --color-paper: ink 17.9:1, ink-soft 9.8:1, ink-mute 6.4:1,
+   * accent 11.1:1, white-on-accent 11.3:1 — all above WCAG AA.
+   */
+  --color-paper: #faf8f3;
+  --color-paper-2: #f1eee6;
+  --color-paper-3: #e4e0d6;
+  --color-line: #dcd7cc;
+  /* Control boundaries need 3:1 against the surface, unlike decorative rules. */
+  --color-field-line: #7a7d84;
+
+  --color-ink: #111318;
+  --color-ink-soft: #3d4048;
+  --color-ink-mute: #5a5e67;
+
+  --color-accent: #003c86;
+  --color-accent-strong: #002b61;
+  --color-accent-soft: #e7edf6;
+
+  /*
+   * Legacy names kept so the rest of the app (admin, itinerary, explore, …)
+   * still resolves bg-pine / text-saffron / fill-marigold. They no longer
+   * introduce extra hues: pine, saffron and marigold are the accent, mist is
+   * the muted ink. New work should use accent / ink / paper directly.
+   */
+  --color-pine: var(--color-accent);
+  --color-pine-2: var(--color-accent-strong);
+  --color-pine-3: #0d4a92;
+  --color-saffron: var(--color-accent);
+  --color-saffron-soft: var(--color-accent-soft);
+  --color-marigold: var(--color-accent);
+  --color-mist: var(--color-ink-mute);
+  /* Semantic only — form/error states. Not used as decoration. */
+  --color-clay: #8a3a2a;
 
   --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -58,11 +80,11 @@
     letter-spacing: -0.02em;
   }
   ::selection {
-    background: var(--color-marigold);
-    color: var(--color-ink);
+    background: var(--color-accent);
+    color: var(--color-paper);
   }
   :focus-visible {
-    outline: 2px solid var(--color-saffron);
+    outline: 2px solid var(--color-accent);
     outline-offset: 3px;
   }
   input,
@@ -98,7 +120,7 @@
   .eyebrow {
     font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--color-ink-mute);
   }
@@ -109,28 +131,29 @@
     justify-content: center;
     gap: 0.5rem;
     border-radius: 999px;
-    background: var(--color-pine);
-    color: var(--color-paper);
+    background: var(--color-accent);
+    color: #fff;
     padding: 0.75rem 1.5rem;
     font-size: 0.875rem;
     font-weight: 500;
     transition: background-color var(--motion-standard), transform var(--motion-fast), box-shadow var(--motion-standard);
   }
   .btn-primary:hover {
-    background: var(--color-pine-2);
-    box-shadow: 0 12px 24px -18px rgba(30, 61, 51, 0.9);
+    background: var(--color-accent-strong);
+    box-shadow: 0 12px 24px -18px rgba(0, 60, 134, 0.9);
   }
   .btn-primary:active {
     transform: translateY(1px);
   }
 
+  /* Kept as a name only: buttons that used the saffron fill now use the accent. */
   .btn-saffron {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
     border-radius: 999px;
-    background: var(--color-saffron);
+    background: var(--color-accent);
     color: #fff;
     padding: 0.75rem 1.5rem;
     font-size: 0.875rem;
@@ -305,11 +328,12 @@
     transition: border-color var(--motion-fast), box-shadow var(--motion-fast);
   }
   .field::placeholder {
-    color: #a49a88;
+    /* #a49a88 was 2.73:1 on the field surface; placeholders are text too. */
+    color: var(--color-ink-mute);
   }
   .field:focus {
-    border-color: var(--color-pine-3);
-    box-shadow: 0 0 0 3px rgba(74, 122, 98, 0.14);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(0, 60, 134, 0.16);
     outline: none;
   }
   .field[aria-invalid='true']:focus {
@@ -322,7 +346,7 @@
     margin-bottom: 0.4rem;
     font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--color-ink-mute);
   }
@@ -346,6 +370,14 @@
 .home-hero {
   height: 100svh;
   min-height: 480px;
+}
+
+/* Hero copy sits over a photograph: the scrim handles the average case, this
+   keeps glyph edges readable where a bright ridge or snowfield crosses the text. */
+.hero-text-shadow {
+  text-shadow:
+    0 1px 2px rgba(8, 18, 22, 0.6),
+    0 10px 34px rgba(8, 18, 22, 0.5);
 }
 
 .home-hero-inner {
@@ -451,7 +483,7 @@
 
   .hero-eyebrow {
     margin-bottom: 0.25rem;
-    font-size: 9px;
+    font-size: 11px;
   }
 
   .hero-title {
@@ -482,7 +514,7 @@
   .hero-stats {
     padding-top: 0.375rem;
     padding-bottom: 0.375rem;
-    font-size: 9px;
+    font-size: 11px;
   }
 
   .hero-scroll {
@@ -496,7 +528,7 @@
   }
 
   .hero-scroll span {
-    font-size: 8px;
+    font-size: 11px;
   }
 }
 
@@ -520,8 +552,8 @@
     circle at 18% 30%,
     transparent 0,
     transparent 22px,
-    rgba(30, 61, 51, 0.07) 22px,
-    rgba(30, 61, 51, 0.07) 23px
+    rgba(0, 60, 134, 0.08) 22px,
+    rgba(0, 60, 134, 0.08) 23px
   );
 }
 
@@ -549,6 +581,107 @@
 
 .fade-up {
   animation: fadeUp 220ms var(--motion-ease) both;
+}
+
+/*
+ * Scroll reveal (useRevealOnScroll in lib/motion). Opacity plus a small rise,
+ * played once when the section first enters the viewport.
+ *
+ * Opacity is used rather than visibility/pointer-events, so links, buttons and
+ * inputs stay hit-testable during the transition — nothing has to wait for the
+ * animation to finish before it can be clicked.
+ */
+.reveal {
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 420ms var(--motion-ease),
+    transform 420ms var(--motion-ease);
+}
+.reveal--in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Leaflet needs a stable, untransformed box: fade the map section only. */
+.reveal--fade {
+  transform: none;
+}
+
+/* Card grids: each card waits its own --stagger before arriving. */
+.stagger-item {
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 380ms var(--motion-ease),
+    transform 380ms var(--motion-ease);
+  transition-delay: var(--stagger, 0ms);
+}
+.reveal--in .stagger-item {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal--in,
+  .stagger-item,
+  .reveal--in .stagger-item {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/*
+ * Route change: fade plus a 4px rise. No fill mode on purpose — the page must
+ * not keep a transform, or fixed-position children would be trapped inside it.
+ */
+.route-enter {
+  animation: route-in var(--motion-standard) var(--motion-ease);
+}
+@keyframes route-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Tab content swap: a 130ms crossfade, deliberately without movement. */
+.tab-fade {
+  animation: tab-in var(--motion-fast) var(--motion-ease);
+}
+@keyframes tab-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Map pins pop in once; MapView sets a per-pin delay so they ripple
+   south → north. */
+.map-pin--pop {
+  animation: pin-pop 200ms var(--motion-ease) backwards;
+}
+@keyframes pin-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 .hero-entrance {
   animation: hero-entrance 560ms var(--motion-ease) both;
@@ -665,17 +798,93 @@ table tbody tr {
   margin: 12px 14px;
   font-size: 12px;
 }
+.map-pin-wrap {
+  background: transparent;
+  border: 0;
+}
 .map-pin {
   display: block;
-  width: 16px;
-  height: 16px;
+  width: 100%;
+  height: 100%;
   border-radius: 999px;
   border: 2px solid #faf6ec;
-  box-shadow: 0 2px 8px rgba(23, 21, 15, 0.4);
-  transition: transform var(--motion-fast) var(--motion-ease);
+  box-shadow: 0 2px 8px rgba(23, 21, 15, 0.45);
+  transition:
+    transform var(--motion-fast) var(--motion-ease),
+    box-shadow var(--motion-fast) var(--motion-ease);
 }
 .leaflet-marker-icon:hover .map-pin {
-  transform: scale(1.12);
+  transform: scale(1.15);
+}
+/* Selected destination: bigger pin plus a halo so it reads at a glance. */
+.map-pin--active {
+  box-shadow:
+    0 0 0 5px rgba(0, 60, 134, 0.28),
+    0 2px 10px rgba(17, 19, 24, 0.5);
+  transform: scale(1.1);
+}
+
+/* Leaflet's own `.leaflet-marker-icon { display: block }` lands after this
+   stylesheet, so the count was pinned to the top-left corner and clipped by
+   the round bubble. The extra class keeps the number centred at any count. */
+.leaflet-marker-icon.map-cluster {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  line-height: 1;
+  border-radius: 999px;
+  border: 2px solid #faf8f3;
+  background: rgba(0, 60, 134, 0.94);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  box-shadow: 0 4px 14px -6px rgba(23, 21, 15, 0.6);
+  transition: transform var(--motion-fast) var(--motion-ease);
+}
+.map-cluster span {
+  display: block;
+  line-height: 1;
+  text-align: center;
+}
+.leaflet-marker-icon.map-cluster:hover {
+  transform: scale(1.06);
+}
+
+.leaflet-tooltip.map-tooltip {
+  border: 0;
+  border-radius: 8px;
+  background: rgba(23, 21, 15, 0.92);
+  color: #faf6ec;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 8px;
+  box-shadow: 0 6px 14px -8px rgba(23, 21, 15, 0.75);
+}
+.leaflet-tooltip.map-tooltip::before {
+  display: none;
+}
+
+.map-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-family: var(--font-sans);
+}
+.map-popup strong {
+  font-size: 13px;
+  color: var(--color-ink);
+}
+.map-popup span {
+  font-size: 11px;
+  color: var(--color-ink-mute);
+}
+.map-popup a {
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-pine);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {

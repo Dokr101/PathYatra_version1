@@ -4,14 +4,22 @@ node_modules/
 # Production build outputs (kept locally, ignored in git)
 dist/
 backend/dist/
+*.tsbuildinfo
 
 # Environment files
 .env
+.env.local
 .env.*
 !.env.example
 backend/.env
 backend/.env.*
 !backend/.env.example
+
+# Logs and test output
+*.log
+npm-debug.log*
+yarn-error.log*
+coverage/
 
 # Scaffolding and temporary artifacts
 .freebuff/

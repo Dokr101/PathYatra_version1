@@ -10,6 +10,16 @@
       content="PathYatra is a Nepal-first travel companion. Discover destinations, plan within your budget, understand seasons and routes, and carry your itinerary with you."
     />
     <title>PathYatra — Your Journey. Your Budget. Your Nepal.</title>
+    <!--
+      Defence in depth for a static SPA. Vite relaxes script-src for the dev
+      server only (see the devCsp plugin in vite.config.ts); this shipped tag is
+      what production browsers enforce. `frame-ancestors` is inert in a meta tag
+      and only documents intent — it must be sent as an HTTP header to work.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data: blob: https://*.tile.openstreetmap.org https://res.cloudinary.com; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.open-meteo.com https://*.ingest.sentry.io; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   </head>

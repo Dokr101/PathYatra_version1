@@ -53,7 +53,7 @@ export function Footer() {
 
           {COLUMNS.map((column) => (
             <div key={column.title}>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-mute">{column.title}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">{column.title}</p>
               <ul className="mt-3 space-y-2">
                 {column.links.map((link) => (
                   <li key={link.label}>
@@ -84,8 +84,8 @@ export function Footer() {
               local conditions before travel.
             </p>
             <p>
-              Destination photos are supplied for featured places; other landscapes are original illustrations. Reviews
-              are community contributions unless a reliable verification method exists.
+              Every published destination has a supplied photograph; an illustration appears only for a newly added place
+              that has no image yet. Reviews are community contributions unless a reliable verification method exists.
             </p>
           </div>
           <div className="flex flex-wrap items-start gap-2">

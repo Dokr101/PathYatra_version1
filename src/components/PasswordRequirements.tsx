@@ -29,7 +29,7 @@ export function PasswordRequirements({
         <button
           type="button"
           onClick={onSuggest}
-          className="inline-flex items-center gap-1 text-[10px] font-medium text-pine hover:underline"
+          className="inline-flex items-center gap-1 text-[11px] font-medium text-pine hover:underline"
         >
           <WandSparkles size={12} /> Suggest a strong password
         </button>
@@ -54,7 +54,7 @@ export function PasswordRequirements({
         {requirements.map((requirement) => (
           <li
             key={requirement.label}
-            className={`flex items-center gap-1.5 text-[10px] ${requirement.valid ? 'text-pine' : 'text-ink-mute'}`}
+            className={`flex items-center gap-1.5 text-[11px] ${requirement.valid ? 'text-pine' : 'text-ink-mute'}`}
           >
             {requirement.valid ? <Check size={11} /> : <X size={11} />}
             {requirement.label}

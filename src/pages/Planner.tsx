@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -24,16 +24,33 @@ import {
 import { DESTINATIONS, getDestination } from '../data/destinations'
 import { useApp } from '../context/AppContext'
 import { generateTrip } from '../lib/itinerary'
+import { DayCardSkeleton } from '../components/CardSkeletons'
+import { loadPlanDraft, savePlanDraft, type PlanDraft } from '../lib/planDraft'
 import { buildRouteOptions, hoursLabel } from '../lib/route'
 import { buildCostBreakdown, VERDICT_COPY } from '../lib/pricing'
-import { addDays, cx, npr, todayISO } from '../lib/format'
+import {
+  addDays,
+  cx,
+  formatDate,
+  hasLocation,
+  LOCATION_NOT_SET,
+  NOT_PRICED,
+  npr,
+  stayLabel,
+  STAY_NOT_SET,
+  todayISO,
+} from '../lib/format'
 import { ChoiceGrid, Notice, Pill } from '../components/ui'
 import { DestinationImage } from '../components/DestinationImage'
 
 const STEPS = ['Trip basics', 'Travel style', 'Interests', 'Route']
 
 function suggestedDays(destination: Destination): number {
-  return Math.min(destination.maxDays, Math.max(3, destination.minDays))
+  // Only a starting value for the day counter: the "Suggested …" caption below
+  // shows an explicit gap instead of inventing a range.
+  const minDays = destination.minDays ?? 3
+  const maxDays = destination.maxDays ?? Math.max(minDays, minDays + 2)
+  return Math.min(maxDays, Math.max(3, minDays))
 }
 
 function suggestedBudget(
@@ -62,18 +79,27 @@ function suggestedBudget(
 }
 
 export function Planner() {
-  const [params] = useSearchParams()
+  const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
   const { user, openAuth, notify, saveTrip, prefs } = useApp()
 
-  const preset = getDestination(params.get('destination') ?? undefined) ?? DESTINATIONS[0]
+  // A draft restored from sessionStorage keeps a mid-wizard refresh (or the
+  // sign-in round trip) from throwing the four steps of answers away.
+  const savedDraft = useMemo(loadPlanDraft, [])
+  const requestedDestination = params.get('destination')
+  // A link to a different place starts a fresh plan; otherwise the draft wins.
+  const restored =
+    requestedDestination && requestedDestination !== savedDraft?.destinationSlug ? null : savedDraft
+  const preset =
+    getDestination(requestedDestination ?? savedDraft?.destinationSlug ?? undefined) ?? DESTINATIONS[0]
   const [destinationSlug, setDestinationSlug] = useState(preset.slug)
   const destination = getDestination(destinationSlug) ?? DESTINATIONS[0]
-  const [originId, setOriginId] = useState(prefs.startPoint)
-  const [startDate, setStartDate] = useState(addDays(todayISO(), 14))
-  const [days, setDays] = useState(suggestedDays(preset))
-  const [travelers, setTravelers] = useState(2)
+  const [originId, setOriginId] = useState(restored?.originId ?? prefs.startPoint)
+  const [startDate, setStartDate] = useState(restored?.startDate ?? addDays(todayISO(), 14))
+  const [days, setDays] = useState(restored?.days ?? suggestedDays(preset))
+  const [travelers, setTravelers] = useState(restored?.travelers ?? 2)
   const [budget, setBudget] = useState(() =>
+    restored?.budget ??
     suggestedBudget(
       preset,
       ORIGINS.find((item) => item.id === prefs.startPoint) ?? ORIGINS[0],
@@ -82,15 +108,17 @@ export function Planner() {
       2,
     ),
   )
-  const [style, setStyle] = useState<TravelStyle>(prefs.style)
-  const [pace, setPace] = useState<Pace>(prefs.pace)
-  const [transport, setTransport] = useState<Transport>(prefs.transport)
-  const [accommodation, setAccommodation] = useState<Accommodation>(prefs.accommodation)
-  const [interests, setInterests] = useState<string[]>(prefs.interests)
-  const [routeType, setRouteType] = useState<RouteType>('scenic')
-  const [step, setStep] = useState(0)
+  const [budgetEditing, setBudgetEditing] = useState(false)
+  const [budgetDigits, setBudgetDigits] = useState(() => String(budget))
+  const [style, setStyle] = useState<TravelStyle>(restored?.style ?? prefs.style)
+  const [pace, setPace] = useState<Pace>(restored?.pace ?? prefs.pace)
+  const [transport, setTransport] = useState<Transport>(restored?.transport ?? prefs.transport)
+  const [accommodation, setAccommodation] = useState<Accommodation>(restored?.accommodation ?? prefs.accommodation)
+  const [interests, setInterests] = useState<string[]>(restored?.interests ?? prefs.interests)
+  const [routeType, setRouteType] = useState<RouteType>(restored?.routeType ?? 'scenic')
+  const [step, setStep] = useState(restored?.step ?? 0)
+  const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const pending = useRef(false)
 
   const origin = ORIGINS.find((item) => item.id === originId) ?? ORIGINS[0]
   const routes = useMemo(
@@ -113,13 +141,49 @@ export function Planner() {
   )
   const verdict = VERDICT_COPY[estimate.verdict]
 
+  const planDraft: PlanDraft = useMemo(
+    () => ({
+      destinationSlug,
+      originId,
+      startDate,
+      days,
+      travelers,
+      budget,
+      style,
+      pace,
+      transport,
+      accommodation,
+      interests,
+      routeType,
+      step,
+    }),
+    [
+      accommodation,
+      budget,
+      days,
+      destinationSlug,
+      interests,
+      originId,
+      pace,
+      routeType,
+      startDate,
+      step,
+      style,
+      transport,
+      travelers,
+    ],
+  )
+
+  // Persist on every change: a refresh mid-wizard restores this exact state.
   useEffect(() => {
-    if (user && pending.current) {
-      pending.current = false
-      runGenerate()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user])
+    savePlanDraft(planDraft)
+  }, [planDraft])
+
+  /** Snapshot the answers, then hand off to sign-in. Called before the modal opens. */
+  const signInToSave = () => {
+    savePlanDraft(planDraft)
+    openAuth('Sign in to save this trip to your account.', '/plan')
+  }
 
   const chooseDestination = (slug: string) => {
     const next = getDestination(slug)
@@ -127,6 +191,13 @@ export function Planner() {
     setDestinationSlug(slug)
     setDays(suggestedDays(next))
     setBudget(suggestedBudget(next, origin, transport, accommodation, travelers))
+    // Keep the URL in step with the wizard so a reload restores this destination
+    // rather than the one the traveller originally arrived with.
+    const nextParams = new URLSearchParams(params)
+    if (nextParams.get('destination') !== slug) {
+      nextParams.set('destination', slug)
+      setParams(nextParams, { replace: true })
+    }
   }
 
   const toggleInterest = (id: string) => {
@@ -168,12 +239,15 @@ export function Planner() {
       setError('A total budget under Rs. 5,000 is unlikely to cover transport, food and a bed. Increase it or try the budget planner first.')
       return
     }
-    if (!user) {
-      pending.current = true
-      openAuth('Sign in to generate and save your itinerary. Your answers on this page are kept exactly as they are.', '/plan')
-      return
-    }
-    runGenerate()
+    // Show the day skeletons for a beat first; the build itself is synchronous.
+    setGenerating(true)
+    window.setTimeout(() => {
+      try {
+        runGenerate()
+      } finally {
+        setGenerating(false)
+      }
+    }, 650)
   }
 
   return (
@@ -211,7 +285,7 @@ export function Planner() {
                 />
                 <span
                   className={cx(
-                    'hidden text-[10px] font-medium uppercase tracking-[0.12em] sm:block',
+                    'hidden text-[11px] font-medium uppercase tracking-[0.08em] sm:block',
                     index === step ? 'text-ink' : 'text-ink-mute',
                   )}
                 >
@@ -222,7 +296,24 @@ export function Planner() {
           </div>
 
           <div className="mt-5 rounded-2xl border border-line bg-white/55 p-5 sm:p-6">
-            {step === 0 ? (
+            {generating ? (
+              <div role="status" aria-live="polite">
+                <p className="flex items-center gap-2 font-display text-xl text-ink">
+                  <Sparkles size={16} className="animate-pulse text-marigold" />
+                  Assembling {days === 1 ? 'your day' : `your ${days} days`}
+                </p>
+                <p className="mt-1 text-xs text-ink-soft">
+                  Weighing road time, altitude, season and your budget{origin ? ` from ${origin.name}` : ''}.
+                </p>
+                <div className="mt-4 space-y-3" aria-hidden="true">
+                  {[0, 1, 2, 3, 4].map((item) => (
+                    <DayCardSkeleton key={item} />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {!generating && step === 0 ? (
               <div className="space-y-4">
                 <div>
                   <h2 className="font-display text-xl text-ink">Where and when</h2>
@@ -293,8 +384,10 @@ export function Planner() {
                         +
                       </button>
                     </div>
-                    <span className="mt-1 block text-[10px] text-ink-mute">
-                      Suggested {destination.minDays}–{destination.maxDays} days
+                    <span className="mt-1 block text-[11px] text-ink-mute">
+                      {destination.minDays === undefined || destination.maxDays === undefined
+                        ? STAY_NOT_SET
+                        : `Suggested ${stayLabel(destination.minDays, destination.maxDays)}`}
                     </span>
                   </label>
                   <label className="block">
@@ -318,20 +411,30 @@ export function Planner() {
                   <div className="flex items-center gap-2">
                     <Wallet size={16} className="text-ink-mute" />
                     <input
-                      type="number"
-                      min={5000}
-                      step={5000}
+                      type="text"
+                      inputMode="numeric"
                       className="field"
-                      value={budget}
-                      onChange={(event) => setBudget(Number(event.target.value) || 0)}
+                      value={budgetEditing ? budgetDigits : npr(budget)}
+                      onFocus={() => {
+                        setBudgetEditing(true)
+                        setBudgetDigits(String(budget))
+                      }}
+                      onChange={(event) => {
+                        const digits = event.target.value.replace(/[^0-9]/g, '')
+                        setBudgetDigits(digits)
+                        setBudget(Number(digits) || 0)
+                      }}
+                      onBlur={() => setBudgetEditing(false)}
                     />
                   </div>
-                  <span className="mt-1 block text-[10px] text-ink-mute">
+                  <span className="mt-1 block text-[11px] text-ink-mute">
                     Everything except international flights. {npr(estimate.group)} is our current estimate.
                   </span>
                 </label>
 
-                {days < destination.minDays || days > destination.maxDays ? (
+                {destination.minDays !== undefined &&
+                destination.maxDays !== undefined &&
+                (days < destination.minDays || days > destination.maxDays) ? (
                   <Notice tone="warn">
                     {days} days sits outside the usual {destination.minDays}–{destination.maxDays} day range for this
                     place. The plan will still generate, but expect a compressed or stretched version of the route.
@@ -340,7 +443,7 @@ export function Planner() {
               </div>
             ) : null}
 
-            {step === 1 ? (
+            {!generating && step === 1 ? (
               <div className="space-y-5">
                 <div>
                   <h2 className="font-display text-xl text-ink">How you like to travel</h2>
@@ -403,7 +506,7 @@ export function Planner() {
               </div>
             ) : null}
 
-            {step === 2 ? (
+            {!generating && step === 2 ? (
               <div className="space-y-4">
                 <div>
                   <h2 className="font-display text-xl text-ink">What would you like to experience?</h2>
@@ -443,7 +546,7 @@ export function Planner() {
               </div>
             ) : null}
 
-            {step === 3 ? (
+            {!generating && step === 3 ? (
               <div className="space-y-4">
                 <div>
                   <h2 className="font-display text-xl text-ink">Choose your route</h2>
@@ -491,7 +594,7 @@ export function Planner() {
                             ))}
                           </div>
                         ) : null}
-                        <p className="mt-2 text-[10px] leading-relaxed text-ink-mute">{option.tradeoff}</p>
+                        <p className="mt-2 text-[11px] leading-relaxed text-ink-mute">{option.tradeoff}</p>
                       </button>
                     )
                   })}
@@ -506,6 +609,7 @@ export function Planner() {
               </div>
             ) : null}
 
+            {generating ? null : (
             <div className="mt-6 flex items-center justify-between gap-3 border-t border-line pt-4">
               <button
                 type="button"
@@ -525,6 +629,7 @@ export function Planner() {
                 </button>
               )}
             </div>
+            )}
           </div>
         </div>
 
@@ -535,7 +640,7 @@ export function Planner() {
               <DestinationImage destination={destination} className="h-32 w-full" />
               <div className="absolute inset-0 bg-gradient-to-t from-ink/80 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 p-3 text-paper">
-                <p className="text-[9px] uppercase tracking-[0.16em] text-paper/60">
+                <p className="text-[11px] uppercase tracking-[0.08em] text-paper/60">
                   {destination.district} · {destination.difficulty}
                 </p>
                 <p className="font-display text-lg leading-tight">{destination.name}</p>
@@ -552,6 +657,20 @@ export function Planner() {
               <p className="mt-1 text-[11px] text-ink-soft">
                 {npr(estimate.perPerson)} per person · {travelers} {travelers === 1 ? 'traveller' : 'travellers'}
               </p>
+              {destination.costPerDay === undefined || !hasLocation(destination) ? (
+                <p className="mt-2 rounded-lg bg-marigold/15 px-2 py-1.5 text-[11px] leading-snug text-[#7a5410]">
+                  {[
+                    destination.costPerDay === undefined
+                      ? `${NOT_PRICED}: daily costs use the national baseline.`
+                      : null,
+                    hasLocation(destination)
+                      ? null
+                      : `${LOCATION_NOT_SET}: distance and transport are placeholders.`,
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                </p>
+              ) : null}
 
               <div className="mt-3 space-y-1.5">
                 {estimate.lines.map((line) => (
@@ -566,27 +685,36 @@ export function Planner() {
                 </div>
               </div>
 
-              <div className="mt-3 rounded-xl bg-paper-2/60 px-3 py-2 text-[10px] leading-relaxed text-ink-soft">
+              <div className="mt-3 rounded-xl bg-paper-2/60 px-3 py-2 text-[11px] leading-relaxed text-ink-soft">
                 {verdict.note}
               </div>
 
               <div className="mt-3 flex flex-wrap gap-1.5">
                 <Pill tone="outline">{days} days</Pill>
-                <Pill tone="outline">{startDate}</Pill>
+                <Pill tone="outline">{formatDate(startDate)}</Pill>
                 <Pill tone="outline">{selectedRoute.label}</Pill>
                 <Pill tone="outline">{interests.length} interests</Pill>
               </div>
 
               {!user ? (
-                <p className="mt-3 text-[10px] leading-relaxed text-ink-mute">
-                  You can complete every step without an account. Sign-in is requested only when you generate the plan.
-                </p>
+                <div className="mt-3 rounded-xl border border-line bg-white/60 px-3 py-2.5">
+                  <p className="text-[11px] leading-relaxed text-ink-mute">
+                    Generate and explore the plan without an account. It stays on this device until you sign in.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={signInToSave}
+                    className="mt-1.5 text-[11px] font-medium text-pine underline underline-offset-2 hover:text-clay"
+                  >
+                    Sign in to save this trip to your account
+                  </button>
+                </div>
               ) : null}
             </div>
           </div>
 
           <div className="rounded-2xl border border-line bg-paper-2/50 p-4">
-            <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-mute">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
               <Compass size={12} /> What happens next
             </p>
             <ol className="mt-2 space-y-1.5 text-[11px] leading-relaxed text-ink-soft">

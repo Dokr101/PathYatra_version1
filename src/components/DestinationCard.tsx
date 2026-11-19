@@ -1,27 +1,44 @@
 import { Link } from 'react-router-dom'
-import { ArrowUpRight, Heart, Layers, MapPin } from 'lucide-react'
+import { ArrowUpRight, Heart, Layers, MapPin, Star } from 'lucide-react'
 import type { Destination } from '../types'
 import { CATEGORY_MAP, getDestination } from '../data/destinations'
 import { useApp } from '../context/AppContext'
-import { monthsLabel, npr, cx } from '../lib/format'
+import { costPerDayLabel, monthsLabel, cx, stayLabel, truncateText } from '../lib/format'
 import { DestinationImage } from './DestinationImage'
 import { Pill } from './ui'
 
+/* The landing page keeps to ink + one accent, so difficulty is weighted rather
+   than coloured: easiest is the accent, hardest is full ink. */
 const DIFFICULTY_TONE: Record<string, string> = {
-  Easy: 'text-pine',
-  Moderate: 'text-[#7a6a1f]',
-  Challenging: 'text-clay',
-  Difficult: 'text-clay',
+  Easy: 'text-accent',
+  Moderate: 'text-ink-soft',
+  Challenging: 'text-ink',
+  Difficult: 'text-ink',
 }
 
-export function DestinationCard({ destination, dense = false }: { destination: Destination; dense?: boolean }) {
+export function DestinationCard({
+  destination,
+  dense = false,
+  enterDelay,
+}: {
+  destination: Destination
+  dense?: boolean
+  /** Milliseconds before the entrance plays; omit to skip the animation. */
+  enterDelay?: number
+}) {
   const { wishlist, toggleWishlist, compare, toggleCompare } = useApp()
   const saved = wishlist.includes(destination.slug)
   const comparing = compare.includes(destination.slug)
   const category = CATEGORY_MAP[destination.category]
 
   return (
-    <article className="motion-card group relative flex flex-col overflow-hidden rounded-[22px] border border-line bg-[#fffdf7]/80 shadow-card hover:shadow-lift">
+    <article
+      className={cx(
+        'motion-card group relative flex flex-col overflow-hidden rounded-[22px] border border-line bg-[#fffdf7]/80 shadow-card hover:shadow-lift',
+        enterDelay !== undefined && 'fade-up',
+      )}
+      style={enterDelay !== undefined ? { animationDelay: `${enterDelay}ms` } : undefined}
+    >
       <Link to={`/explore/${destination.slug}`} className="flex flex-1 flex-col">
         <div className={cx('relative overflow-hidden', dense ? 'aspect-[16/9]' : 'aspect-[4/3]')}>
           <DestinationImage
@@ -31,14 +48,14 @@ export function DestinationCard({ destination, dense = false }: { destination: D
           <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/5 to-transparent" />
 
           <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-            <Pill tone="pine" className="backdrop-blur-sm">
+            <Pill tone="pine" className="backdrop-blur-sm text-white">
               {category.short}
             </Pill>
             {destination.hiddenGem ? <Pill tone="marigold">Hidden gem</Pill> : null}
           </div>
 
           <div className="absolute inset-x-3 bottom-3 text-paper">
-            <p className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-[0.16em] text-paper/75">
+            <p className="flex items-center gap-1 text-[11px] font-medium uppercase tracking-[0.08em] text-paper/75">
               <MapPin size={10} /> {destination.district} · {destination.province}
             </p>
             <h3 className="mt-1 font-display text-[1.35rem] leading-tight text-paper">{destination.name}</h3>
@@ -46,25 +63,36 @@ export function DestinationCard({ destination, dense = false }: { destination: D
         </div>
 
         <div className="flex flex-1 flex-col p-4">
-          <p className="line-clamp-2 text-xs leading-relaxed text-ink-soft">{destination.summary}</p>
+          {typeof destination.reviewCount === 'number' && destination.reviewCount > 0 ? (
+            <p className="mb-1.5 flex items-center gap-1 text-[11px] font-medium text-ink-mute">
+              <Star size={9} className="fill-marigold text-marigold" />
+              {destination.averageRating ? destination.averageRating.toFixed(1) : '—'}
+              <span className="font-normal">
+                · {destination.reviewCount} {destination.reviewCount === 1 ? 'review' : 'reviews'}
+              </span>
+            </p>
+          ) : null}
+          <p className="line-clamp-2 text-xs leading-relaxed text-ink-soft">{truncateText(destination.summary)}</p>
 
           <dl className="mt-4 grid grid-cols-2 gap-x-2 gap-y-2.5 border-t border-line pt-3">
             <div>
-              <dt className="text-[10px] uppercase tracking-[0.12em] text-ink-mute">Best season</dt>
+              <dt className="text-[11px] uppercase tracking-[0.08em] text-ink-mute">Best season</dt>
               <dd className="mt-0.5 text-[11px] font-medium text-ink">{monthsLabel(destination.bestMonths)}</dd>
             </div>
             <div>
-              <dt className="text-[10px] uppercase tracking-[0.12em] text-ink-mute">Suggested</dt>
+              <dt className="text-[11px] uppercase tracking-[0.08em] text-ink-mute">Suggested</dt>
               <dd className="mt-0.5 text-[11px] font-medium text-ink">
-                {destination.minDays}–{destination.maxDays} days
+                {stayLabel(destination.minDays, destination.maxDays)}
               </dd>
             </div>
             <div>
-              <dt className="text-[10px] uppercase tracking-[0.12em] text-ink-mute">From</dt>
-              <dd className="mt-0.5 text-[11px] font-medium text-ink">{npr(destination.costPerDay)} / day</dd>
+              <dt className="text-[11px] uppercase tracking-[0.08em] text-ink-mute">From</dt>
+              <dd className="mt-0.5 text-[11px] font-medium text-ink">
+                {costPerDayLabel(destination.costPerDay)}
+              </dd>
             </div>
             <div>
-              <dt className="text-[10px] uppercase tracking-[0.12em] text-ink-mute">Difficulty</dt>
+              <dt className="text-[11px] uppercase tracking-[0.08em] text-ink-mute">Difficulty</dt>
               <dd className={cx('mt-0.5 text-[11px] font-medium', DIFFICULTY_TONE[destination.difficulty])}>
                 {destination.difficulty}
               </dd>
@@ -125,7 +153,7 @@ export function MiniDestination({ slug }: { slug: string }) {
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-xs font-medium text-ink">{destination.name}</span>
-        <span className="block truncate text-[10px] text-ink-mute">
+        <span className="block truncate text-[11px] text-ink-mute">
           {destination.district} · {monthsLabel(destination.bestMonths)}
         </span>
       </span>

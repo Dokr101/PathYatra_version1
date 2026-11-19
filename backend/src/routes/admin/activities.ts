@@ -10,6 +10,7 @@ import {
   searchTerm,
   writeAudit,
 } from '../../lib/admin.js'
+import { getUserId } from '../../middleware/auth.js'
 
 export const adminActivitiesRouter = Router()
 
@@ -64,7 +65,7 @@ adminActivitiesRouter.post(
       include,
     })
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: 'activity.create',
       entityType: 'Activity',
       entityId: activity.id,
@@ -97,7 +98,7 @@ adminActivitiesRouter.patch(
       include,
     })
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: 'activity.update',
       entityType: 'Activity',
       entityId: id,
@@ -115,7 +116,7 @@ adminActivitiesRouter.delete(
     if (!existing) throw new ApiError(404, 'Activity not found')
     await prisma.activity.delete({ where: { id } })
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: 'activity.delete',
       entityType: 'Activity',
       entityId: id,

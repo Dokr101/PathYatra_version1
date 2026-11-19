@@ -233,7 +233,8 @@ function jungle(seed: number, colors: string[], sunColor: string) {
   )
 }
 
-function stupa(seed: number, colors: string[], sunColor: string) {
+// `_seed` is accepted because every scene art takes one; this drawing is fixed.
+function stupa(_seed: number, colors: string[], sunColor: string) {
   return (
     <>
       <path d="M0 252 C 90 236, 180 258, 270 242 C 350 228, 420 250, 480 240 L480 320 L0 320 Z" fill={colors[0]} opacity="0.6" />

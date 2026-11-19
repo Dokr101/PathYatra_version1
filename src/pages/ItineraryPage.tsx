@@ -5,6 +5,7 @@ import {
   ArrowRight,
   CalendarDays,
   Check,
+  CloudUpload,
   Copy,
   FileText,
   Lightbulb,
@@ -26,7 +27,7 @@ import { ADVISORIES } from '../data/content'
 import { recalculatePlan, regenerateDay } from '../lib/itinerary'
 import { savingTips, VERDICT_COPY } from '../lib/pricing'
 import { copyText, shareLink } from '../lib/share'
-import { cx, formatDate, formatDateRange, npr, nprShort } from '../lib/format'
+import { cx, formatDate, formatDateRange, npr } from '../lib/format'
 import { hoursLabel } from '../lib/route'
 import { DayCard } from '../components/itinerary/DayCard'
 import { CompanionTab } from '../components/itinerary/CompanionTab'
@@ -44,7 +45,7 @@ const STATUS_COPY = {
 export function ItineraryPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { trips, updateTrip, deleteTrip, setTripStatus, notify } = useApp()
+  const { trips, updateTrip, deleteTrip, setTripStatus, notify, user, openAuth } = useApp()
   const trip = trips.find((item) => item.id === id)
   const destination = trip ? getDestination(trip.destinationSlug) : undefined
   const origin = trip ? ORIGINS.find((item) => item.id === trip.originId) ?? ORIGINS[0] : ORIGINS[0]
@@ -85,6 +86,9 @@ export function ItineraryPage() {
       total: day.blocks.filter((block) => block.kind !== 'travel').reduce((sum, block) => sum + block.cost, 0),
     }))
   }, [trip])
+
+  const contingencyGroup = trip ? trip.costs.contingency * trip.travelers : 0
+  const contingencyRate = trip ? Math.round((trip.costs.contingency / Math.max(1, trip.costs.perPerson)) * 200) / 2 : 0
 
   if (!trip || !destination) {
     return (
@@ -180,6 +184,15 @@ export function ItineraryPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {!user ? (
+              <button
+                type="button"
+                onClick={() => openAuth('Sign in to save this trip to your account.', `/itinerary/${trip.id}`)}
+                className="btn-saffron"
+              >
+                <CloudUpload size={14} /> Save to your account
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={() => setEditMode((value) => !value)}
@@ -228,7 +241,7 @@ export function ItineraryPage() {
           })}
         </div>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1.55fr_1fr]">
+        <div key={tab} className="tab-fade mt-6 grid gap-6 lg:grid-cols-[1.55fr_1fr]">
           <div className="min-w-0">
             {tab === 'itinerary' ? (
               <div className="space-y-3">
@@ -276,7 +289,7 @@ export function ItineraryPage() {
                 <div className="rounded-2xl border border-line bg-white/60 p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-mute">Estimated total</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">Estimated total</p>
                       <p className="mt-1 font-display text-[clamp(2rem,4vw,2.8rem)] leading-none text-ink">
                         {npr(trip.costs.group)}
                       </p>
@@ -296,7 +309,7 @@ export function ItineraryPage() {
                       >
                         {verdict.label}
                       </Pill>
-                      <p className="mt-2 text-[10px] text-ink-mute">Budget {npr(trip.budget)}</p>
+                      <p className="mt-2 text-[11px] text-ink-mute">Budget {npr(trip.budget)}</p>
                       <p
                         className={cx(
                           'text-xs font-medium',
@@ -319,7 +332,7 @@ export function ItineraryPage() {
                       style={{ width: `${Math.min(100, (trip.costs.group / Math.max(1, trip.budget)) * 100)}%` }}
                     />
                   </div>
-                  <p className="mt-1.5 text-[10px] text-ink-mute">{verdict.note}</p>
+                  <p className="mt-1.5 text-[11px] text-ink-mute">{verdict.note}</p>
 
                   <div className="mt-4 flex flex-wrap items-end gap-2">
                     <label className="min-w-[180px] flex-1">
@@ -365,12 +378,27 @@ export function ItineraryPage() {
                             style={{ width: `${(line.group / Math.max(1, trip.costs.group)) * 100}%` }}
                           />
                         </div>
-                        <p className="mt-0.5 text-[9px] text-ink-mute">{line.detail}</p>
+                        <p className="mt-0.5 text-[11px] text-ink-mute">{line.detail}</p>
                       </div>
                     ))}
-                    <div className="flex items-center justify-between border-t border-line pt-2 text-[11px]">
-                      <span className="text-ink-mute">Contingency allowance (8%)</span>
-                      <span className="text-ink-soft">{npr(trip.costs.contingency * trip.travelers)}</span>
+                    <div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-medium text-ink-soft">Contingency buffer (≈{contingencyRate}%)</span>
+                        <span className="text-ink-soft">
+                          {npr(contingencyGroup)}{' '}
+                          <span className="text-ink-mute">· {npr(trip.costs.contingency)} pp</span>
+                        </span>
+                      </div>
+                      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-paper-2">
+                        <div
+                          className="h-full rounded-full bg-clay/60"
+                          style={{ width: `${(contingencyGroup / Math.max(1, trip.costs.group)) * 100}%` }}
+                        />
+                      </div>
+                      <p className="mt-0.5 text-[11px] text-ink-mute">
+                        Weather delays, price changes and extra nights — the lines above plus this buffer make the
+                        estimated total.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -385,11 +413,11 @@ export function ItineraryPage() {
                           style={{ height: `${Math.max(4, (item.total / maxDaily) * 90)}px` }}
                           title={npr(item.total)}
                         />
-                        <span className="text-[9px] text-ink-mute">{item.index}</span>
+                        <span className="text-[11px] text-ink-mute">{item.index}</span>
                       </div>
                     ))}
                   </div>
-                  <p className="mt-1 text-[10px] text-ink-mute">
+                  <p className="mt-1 text-[11px] text-ink-mute">
                     Activity spend by day, excluding transport and accommodation. Day one is usually lightest.
                   </p>
                 </div>
@@ -404,7 +432,7 @@ export function ItineraryPage() {
                             <p className="text-xs font-medium text-ink">{tip.title}</p>
                             <span className="shrink-0 text-[11px] text-pine">save {npr(tip.saving)}</span>
                           </div>
-                          <p className="mt-1 text-[10px] leading-relaxed text-ink-soft">{tip.detail}</p>
+                          <p className="mt-1 text-[11px] leading-relaxed text-ink-soft">{tip.detail}</p>
                         </div>
                       ))}
                     </div>
@@ -428,7 +456,7 @@ export function ItineraryPage() {
                 <DestinationImage destination={destination} className="h-28 w-full" />
                 <div className="absolute inset-0 bg-gradient-to-t from-ink/80 to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 p-3 text-paper">
-                  <p className="text-[9px] uppercase tracking-[0.15em] text-paper/60">{destination.district}</p>
+                  <p className="text-[11px] uppercase tracking-[0.08em] text-paper/60">{destination.district}</p>
                   <p className="font-display text-base leading-tight">{destination.name}</p>
                 </div>
               </div>
@@ -444,7 +472,7 @@ export function ItineraryPage() {
                   </div>
                   <div className="flex justify-between gap-2">
                     <dt className="text-ink-mute">Start</dt>
-                    <dd className="text-right font-medium text-ink">{formatDate(trip.startDate, { short: true })}</dd>
+                    <dd className="text-right font-medium text-ink">{formatDate(trip.startDate)}</dd>
                   </div>
                   <div className="flex justify-between gap-2">
                     <dt className="text-ink-mute">Route</dt>
@@ -482,16 +510,16 @@ export function ItineraryPage() {
 
             <div className="rounded-2xl border border-line bg-white/55 p-4">
               <div className="flex items-center justify-between">
-                <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-mute">
+                <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
                   <RouteIcon size={12} /> Route
                 </p>
                 <Pill tone="outline">{trip.routeType}</Pill>
               </div>
               <p className="mt-2 text-xs font-medium text-ink">{trip.route.mode}</p>
-              <p className="mt-1 text-[10px] leading-relaxed text-ink-soft">{trip.route.tradeoff}</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-ink-soft">{trip.route.tradeoff}</p>
               <div className="mt-2 space-y-1">
                 {trip.route.roads.map((road) => (
-                  <p key={road} className="text-[10px] text-ink-mute">
+                  <p key={road} className="text-[11px] text-ink-mute">
                     · {road}
                   </p>
                 ))}
@@ -508,12 +536,12 @@ export function ItineraryPage() {
             </div>
 
             <div className="rounded-2xl border border-marigold/40 bg-marigold/10 p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7a5410]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7a5410]">
                 Live conditions
               </p>
               <p className="mt-1.5 text-[11px] font-medium text-ink">{ADVISORIES[1].title}</p>
-              <p className="mt-1 text-[10px] leading-relaxed text-ink-soft">{ADVISORIES[1].body}</p>
-              <Link to={`/explore/${destination.slug}`} className="mt-2 inline-flex items-center gap-1 text-[10px] font-medium text-[#7a5410]">
+              <p className="mt-1 text-[11px] leading-relaxed text-ink-soft">{ADVISORIES[1].body}</p>
+              <Link to={`/explore/${destination.slug}`} className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-[#7a5410]">
                 See the destination forecast <ArrowRight size={10} />
               </Link>
             </div>
@@ -532,7 +560,7 @@ export function ItineraryPage() {
       {/* Print view */}
       <section className="hidden print:block print:px-0">
         <div className="mb-6 border-b border-ink/20 pb-4">
-          <p className="text-[10px] uppercase tracking-[0.2em]">PathYatra · Nepal travel companion</p>
+          <p className="text-[11px] uppercase tracking-[0.08em]">PathYatra · Nepal travel companion</p>
           <h1 className="mt-2 font-display text-3xl">{trip.title}</h1>
           <p className="mt-1 text-sm">
             {destination.name} · {formatDateRange(trip.startDate, trip.days)} · {trip.travelers}{' '}
@@ -545,15 +573,15 @@ export function ItineraryPage() {
 
         <div className="grid grid-cols-3 gap-3 border-b border-ink/15 pb-4">
           <div>
-            <p className="text-[9px] uppercase tracking-wider">Estimated total</p>
+            <p className="text-[11px] uppercase tracking-wider">Estimated total</p>
             <p className="font-display text-lg">{npr(trip.costs.group)}</p>
           </div>
           <div>
-            <p className="text-[9px] uppercase tracking-wider">Per person</p>
+            <p className="text-[11px] uppercase tracking-wider">Per person</p>
             <p className="font-display text-lg">{npr(trip.costs.perPerson)}</p>
           </div>
           <div>
-            <p className="text-[9px] uppercase tracking-wider">Budget</p>
+            <p className="text-[11px] uppercase tracking-wider">Budget</p>
             <p className="font-display text-lg">{npr(trip.budget)}</p>
           </div>
         </div>
@@ -561,19 +589,19 @@ export function ItineraryPage() {
         {trip.itinerary.map((day) => (
           <div key={day.index} className="print-avoid-break mt-4 border-b border-ink/10 pb-3">
             <h2 className="font-display text-base">
-              Day {day.index} · {formatDate(day.date, { short: true })} · {day.title}
+              Day {day.index} · {formatDate(day.date)} · {day.title}
             </h2>
-            <p className="text-[10px] text-ink-soft">{day.subtitle}</p>
+            <p className="text-[11px] text-ink-soft">{day.subtitle}</p>
             <ul className="mt-1 space-y-0.5">
               {day.blocks.map((block, index) => (
-                <li key={index} className="text-[10px]">
+                <li key={index} className="text-[11px]">
                   <span className="inline-block w-16 font-medium">{block.time}</span>
                   {block.title}
                   {block.cost > 0 ? ` · ${npr(block.cost)}` : ''}
                 </li>
               ))}
             </ul>
-            <p className="mt-1 text-[9px] text-ink-soft">
+            <p className="mt-1 text-[11px] text-ink-soft">
               {day.stay ? `Stay: ${day.stay}. ` : ''}
               {day.meals ? `Eat: ${day.meals}.` : ''}
             </p>
@@ -582,7 +610,7 @@ export function ItineraryPage() {
 
         <div className="print-avoid-break mt-4">
           <h2 className="font-display text-base">Budget breakdown</h2>
-          <table className="mt-1 w-full text-[10px]">
+          <table className="mt-1 w-full text-[11px]">
             <tbody>
               {trip.costs.lines.map((line) => (
                 <tr key={line.key} className="border-b border-ink/10">
@@ -602,19 +630,19 @@ export function ItineraryPage() {
 
         <div className="print-avoid-break mt-4">
           <h2 className="font-display text-base">Packing checklist</h2>
-          <p className="text-[10px]">{trip.packing.join(' · ')}</p>
+          <p className="text-[11px]">{trip.packing.join(' · ')}</p>
         </div>
 
         <div className="print-avoid-break mt-4">
           <h2 className="font-display text-base">Travel notes and safety</h2>
           <ul className="mt-1 space-y-0.5">
             {trip.notes.map((note) => (
-              <li key={note.slice(0, 20)} className="text-[10px]">
+              <li key={note.slice(0, 20)} className="text-[11px]">
                 · {note}
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-[9px]">
+          <p className="mt-2 text-[11px]">
             Emergency: Police 100 · Ambulance 102 · Tourist Police 1144. Estimates are indicative, not bookings. Verify
             conditions with official sources.
           </p>
@@ -631,7 +659,7 @@ export function ItineraryPage() {
           readOnly
           value={link}
           rows={4}
-          className="field resize-none font-mono text-[10px] leading-relaxed"
+          className="field resize-none font-mono text-[11px] leading-relaxed"
           aria-label="Share link"
           onFocus={(event) => event.target.select()}
         />
@@ -646,7 +674,7 @@ export function ItineraryPage() {
           >
             <Copy size={14} /> Copy link
           </button>
-          <a href={link} target="_blank" rel="noreferrer" className="btn-ghost">
+          <a href={link} target="_blank" rel="noopener noreferrer" className="btn-ghost">
             Open preview <ArrowRight size={14} />
           </a>
         </div>

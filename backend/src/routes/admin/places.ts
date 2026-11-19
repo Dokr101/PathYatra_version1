@@ -10,6 +10,7 @@ import {
   searchTerm,
   writeAudit,
 } from '../../lib/admin.js'
+import { getUserId } from '../../middleware/auth.js'
 
 export const adminPlacesRouter = Router()
 
@@ -60,7 +61,7 @@ adminPlacesRouter.post(
       include,
     })
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: 'place.create',
       entityType: 'Place',
       entityId: place.id,
@@ -83,7 +84,7 @@ adminPlacesRouter.patch(
     }
     const place = await prisma.place.update({ where: { id }, data, include })
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: 'place.update',
       entityType: 'Place',
       entityId: id,
@@ -101,7 +102,7 @@ adminPlacesRouter.delete(
     if (!existing) throw new ApiError(404, 'Place not found')
     await prisma.place.delete({ where: { id } })
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: 'place.delete',
       entityType: 'Place',
       entityId: id,

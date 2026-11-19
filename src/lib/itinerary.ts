@@ -11,7 +11,7 @@ import type {
   TripDay,
   TripPlan,
 } from '../types'
-import { addDays, clamp, formatDate, monthIndex, shortName, todayISO } from './format'
+import { addDays, formatDate, monthIndex, shortName, todayISO } from './format'
 import { buildRouteOptions, hoursLabel } from './route'
 import { buildCostBreakdown } from './pricing'
 import { MONTHS, SEASONS } from '../data/taxonomy'
@@ -147,7 +147,6 @@ function buildTravelBlocks(destination: Destination, origin: Origin, route: Rout
     {
       time: 'Evening',
       title: destination.category === 'lakes' ? 'Lakeside walk and early dinner' : 'Settle in and eat local',
-      note: mealsFor(destination, 0),
       cost: 500,
       kind: 'meal',
     },
@@ -155,7 +154,9 @@ function buildTravelBlocks(destination: Destination, origin: Origin, route: Rout
 }
 
 function buildExploreBlocks(
-  destination: Destination,
+  // Kept in the signature for symmetry with the other builders; this one never
+  // reads it, the caller's catalog already carries the destination's activities.
+  _destination: Destination,
   catalog: CatalogItem[],
   dayIndex: number,
   pace: Pace,
@@ -239,7 +240,6 @@ export function generateTrip(draft: PlanDraft): TripPlan {
           {
             time: 'Evening',
             title: 'Early dinner and gear check',
-            note: mealsFor(destination, i),
             cost: 400,
             kind: 'meal',
           },
@@ -291,7 +291,7 @@ export function generateTrip(draft: PlanDraft): TripPlan {
       index: i + 1,
       date,
       title: themes[(i + (local ? 1 : 0)) % themes.length],
-      subtitle: local ? `${formatDate(date, { short: true })} · ${destination.district}` : 'A full day without a long transfer',
+      subtitle: local ? `${formatDate(date)} · ${destination.district}` : 'A full day without a long transfer',
       type: highAltitude ? 'trek' : 'explore',
       altitude: alt,
       blocks: buildExploreBlocks(destination, catalog, i, pace, activityOffset),
@@ -489,6 +489,3 @@ export function recalculatePlan(plan: TripPlan, destination: Destination): TripP
   return { ...plan, costs }
 }
 
-export function dayAltitude(plan: TripPlan, day: TripDay): number | undefined {
-  return day.altitude
-}

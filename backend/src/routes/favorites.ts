@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { prisma } from '../lib/prisma.js'
 import { ApiError, asyncHandler } from '../lib/api-error.js'
 import { param } from '../lib/params.js'
-import { requireAuth } from '../middleware/auth.js'
+import { getUserId, requireAuth } from '../middleware/auth.js'
 
 export const favoritesRouter = Router()
 
@@ -12,7 +12,7 @@ favoritesRouter.get(
   '/',
   asyncHandler(async (req, res) => {
     const favorites = await prisma.favorite.findMany({
-      where: { userId: req.userId! },
+      where: { userId: getUserId(req) },
       include: {
         destination: {
           include: { category: true },
@@ -40,7 +40,7 @@ favoritesRouter.post(
     const existing = await prisma.favorite.findUnique({
       where: {
         userId_destinationId: {
-          userId: req.userId!,
+          userId: getUserId(req),
           destinationId: destination.id,
         },
       },
@@ -53,7 +53,7 @@ favoritesRouter.post(
     }
 
     const favorite = await prisma.favorite.create({
-      data: { userId: req.userId!, destinationId: destination.id },
+      data: { userId: getUserId(req), destinationId: destination.id },
       include: { destination: { include: { category: true } } },
     })
 
@@ -65,7 +65,7 @@ favoritesRouter.delete(
   '/:destinationId',
   asyncHandler(async (req, res) => {
     await prisma.favorite.deleteMany({
-      where: { userId: req.userId!, destinationId: param(req, 'destinationId') },
+      where: { userId: getUserId(req), destinationId: param(req, 'destinationId') },
     })
 
     res.status(204).send()

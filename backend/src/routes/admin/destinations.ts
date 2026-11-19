@@ -11,6 +11,7 @@ import {
   writeAudit,
 } from '../../lib/admin.js'
 import { destinationSchema } from '../../schemas/admin.js'
+import { getUserId } from '../../middleware/auth.js'
 
 export const adminDestinationsRouter = Router()
 
@@ -106,7 +107,7 @@ adminDestinationsRouter.post(
     })
 
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: 'destination.create',
       entityType: 'Destination',
       entityId: destination.id,
@@ -157,7 +158,7 @@ adminDestinationsRouter.patch(
 
     const archived = data.status === 'ARCHIVED' && existing.status !== 'ARCHIVED'
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: archived ? 'destination.archive' : 'destination.update',
       entityType: 'Destination',
       entityId: id,
@@ -194,7 +195,7 @@ adminDestinationsRouter.delete(
       prisma.destination.delete({ where: { id } }),
     ])
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: 'destination.delete',
       entityType: 'Destination',
       entityId: id,

@@ -1,6 +1,12 @@
 // PathYatra data model.
 // Local dev uses SQLite. To move to Postgres later, change the provider below
 // and DATABASE_URL in backend/.env — no application code changes are needed.
+//
+// Money is Decimal, never Float. SQLite has no exact numeric type, so Prisma
+// stores Decimal as REAL here; on Postgres these become DECIMAL(65,30). A
+// production deployment should either add @db.Decimal(12, 2) to the six money
+// fields below after switching the provider, or store integer paise. The API
+// still returns plain numbers: see the JSON replacer in src/server.ts.
 
 generator client {
   provider = "prisma-client-js"
@@ -43,6 +49,13 @@ enum TravelInfoStatus {
   VERIFIED
   ESTIMATE
   GENERAL_GUIDANCE
+}
+
+/// Lowercase because these values were already stored as plain strings.
+enum ItineraryStatus {
+  draft
+  upcoming
+  completed
 }
 
 model User {
@@ -91,7 +104,7 @@ model Destination {
   bestSeason              String?
   recommendedDurationDays Int?
   difficultyLevel         String        @default("easy")
-  costPerPersonPerDay     Float?
+  costPerPersonPerDay     Decimal?
   latitude                Float?
   longitude               Float?
   imagePath               String?
@@ -107,6 +120,7 @@ model Destination {
   places      Place[]
   travelInfo  TravelInfo[]
   templates   ItineraryTemplate[]
+  featuredIn  FeaturedDestination[]
 }
 
 model DestinationImage {
@@ -128,20 +142,20 @@ model DestinationImage {
 }
 
 model Activity {
-  id             String        @id @default(cuid())
-  destinationId  String
-  destination    Destination   @relation(fields: [destinationId], references: [id], onDelete: Cascade)
-  name           String
-  type           ActivityType  @default(ACTIVITY)
-  description    String?
-  durationHours  Float?
-  costEstimate   Float?
-  costUpdatedAt  DateTime?
-  difficulty     String?
-  bestSeason     String?
-  status         ContentStatus @default(PUBLISHED)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id            String        @id @default(cuid())
+  destinationId String
+  destination   Destination   @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  name          String
+  type          ActivityType  @default(ACTIVITY)
+  description   String?
+  durationHours Float?
+  costEstimate  Decimal?
+  costUpdatedAt DateTime?
+  difficulty    String?
+  bestSeason    String?
+  status        ContentStatus @default(PUBLISHED)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   @@index([destinationId])
 }
@@ -168,25 +182,25 @@ model Place {
 }
 
 model ItineraryTemplate {
-  id             String        @id @default(cuid())
-  destinationId  String?
-  destination    Destination?  @relation(fields: [destinationId], references: [id], onDelete: SetNull)
-  title          String
-  slug           String        @unique
-  summary        String?
-  difficulty     String?
-  durationDays    Int           @default(1)
-  estimatedCost  Float?
-  status         ContentStatus @default(DRAFT)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  days           TemplateDay[]
+  id            String        @id @default(cuid())
+  destinationId String?
+  destination   Destination?  @relation(fields: [destinationId], references: [id], onDelete: SetNull)
+  title         String
+  slug          String        @unique
+  summary       String?
+  difficulty    String?
+  durationDays  Int           @default(1)
+  estimatedCost Decimal?
+  status        ContentStatus @default(DRAFT)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  days          TemplateDay[]
 
   @@index([destinationId])
 }
 
 model TemplateDay {
-  id          String          @id @default(cuid())
+  id          String            @id @default(cuid())
   templateId  String
   template    ItineraryTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   dayNumber   Int
@@ -204,8 +218,10 @@ model TemplateStop {
   timeSlot      String?
   title         String
   description   String?
-  estimatedCost Float?
+  estimatedCost Decimal?
   sortOrder     Int         @default(0)
+
+  @@index([dayId])
 }
 
 model TravelInfo {
@@ -244,31 +260,45 @@ model AuditLog {
 }
 
 model SiteSetting {
-  id                     String   @id @default("singleton")
-  siteName               String   @default("PathYatra")
-  contactEmail           String?
-  contactPhone           String?
-  featuredDestinationIds String   @default("[]")
-  updatedAt              DateTime @updatedAt
+  id           String   @id @default("singleton")
+  siteName     String   @default("PathYatra")
+  contactEmail String?
+  contactPhone String?
+  updatedAt    DateTime @updatedAt
+}
+
+/// Featured places on the home page, in display order. Replaces the old
+/// JSON-encoded id list: the foreign key (with cascade) makes a deleted
+/// destination remove itself instead of leaving an orphan string behind.
+model FeaturedDestination {
+  destinationId String      @id
+  destination   Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  sortOrder     Int         @default(0)
+
+  @@index([sortOrder])
 }
 
 model Itinerary {
-  id            String         @id @default(cuid())
+  id            String          @id @default(cuid())
   userId        String
-  user          User           @relation(fields: [userId], references: [id])
+  user          User            @relation(fields: [userId], references: [id])
   destinationId String
-  destination   Destination    @relation(fields: [destinationId], references: [id])
+  destination   Destination     @relation(fields: [destinationId], references: [id])
   title         String
   startingPoint String?
   startDate     DateTime?
   endDate       DateTime?
-  numTravelers  Int            @default(1)
-  totalBudget   Float?
-  status        String         @default("draft")
+  numTravelers  Int             @default(1)
+  totalBudget   Decimal?
+  status        ItineraryStatus @default(draft)
   /// Rich client plan (route, costs, packing, notes) that has no relational home.
   clientPlan    String?
-  createdAt     DateTime       @default(now())
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @default(now()) @updatedAt
   days          ItineraryDay[]
+
+  @@index([userId])
+  @@index([destinationId])
 }
 
 model ItineraryDay {
@@ -279,6 +309,8 @@ model ItineraryDay {
   dayDate     DateTime?
   notes       String?
   stops       ItineraryStop[]
+
+  @@index([itineraryId])
 }
 
 model ItineraryStop {
@@ -288,8 +320,10 @@ model ItineraryStop {
   timeSlot      String
   title         String
   description   String?
-  estimatedCost Float?
+  estimatedCost Decimal?
   sortOrder     Int          @default(0)
+
+  @@index([dayId])
 }
 
 model Favorite {

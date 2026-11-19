@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, EyeOff, MessageSquareText, Star } from 'lucide-react'
 import type { AdminDestination, AdminReview, ReviewStatus } from '../../lib/api'
-import { apiErrorMessage } from '../../lib/api'
 import {
   useAdminApi,
   useDebounced,
@@ -49,20 +48,19 @@ export function AdminReviews() {
       .list({ pageSize: 100, sort: 'name', order: 'asc' })
       .then((result) => setDestinations(result.items))
       .catch(() => undefined)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [api])
 
   useEffect(() => setPage(1), [debouncedQuery, status, destinationId])
 
   const { data, loading, error, reload } = usePagedList(
-    () =>
+    (signal) =>
       api.reviews.list({
         q: debouncedQuery,
         status,
         destinationId,
         page,
         pageSize: 20,
-      }),
+      }, signal),
     [debouncedQuery, status, destinationId, page],
   )
 
@@ -219,7 +217,7 @@ export function AdminReviews() {
                       <EyeOff size={11} /> Hide
                     </AdminButton>
                   ) : null}
-                  <p className="text-[10px] text-ink-mute">Review content is read-only.</p>
+                  <p className="text-[11px] text-ink-mute">Review content is read-only.</p>
                 </div>
               </article>
             ))}

@@ -1,0 +1,15 @@
+-- Retired column: SiteSetting.defaultCurrency
+--
+-- The column was added as `TEXT NOT NULL DEFAULT 'NPR'` in
+-- 20261109051111_admin_panel and dropped by 20261109150000_remove_default_currency.
+-- No backfill was needed because no code read it: every price in the app is
+-- formatted as NPR by `npr()` in src/lib/format.ts, so the stored 'NPR' was
+-- already the only value in use. Dropping it lost nothing but that default.
+--
+-- If currency ever needs to be configurable, add a `currency` column back to
+-- SiteSetting with its own migration, an admin field, and a reader in the
+-- pricing/serialisation path — don't reintroduce this column expecting code to
+-- pick it up.
+--
+-- This migration is intentionally empty. It exists so the decision lives in the
+-- migration history next to the drop, not only in a commit message.

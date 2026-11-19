@@ -73,7 +73,7 @@ export function Help() {
             <h2 className="font-display text-2xl text-ink">Data, sources and uncertainty</h2>
             <div className="mt-3 overflow-hidden rounded-2xl border border-line bg-white/55">
               <table className="w-full text-left text-[11px]">
-                <thead className="bg-paper-2/60 text-[9px] uppercase tracking-[0.1em] text-ink-mute">
+                <thead className="bg-paper-2/60 text-[11px] uppercase tracking-[0.08em] text-ink-mute">
                   <tr>
                     <th className="px-3 py-2 font-semibold">Area</th>
                     <th className="px-3 py-2 font-semibold">Source</th>
@@ -91,7 +91,7 @@ export function Help() {
                 </tbody>
               </table>
             </div>
-            <p className="mt-2 text-[10px] leading-relaxed text-ink-mute">
+            <p className="mt-2 text-[11px] leading-relaxed text-ink-mute">
               The product deliberately separates the route engine (valid distances and costs) from the recommendation
               layer (why a place suits you). Neither invents live road closures or weather.
             </p>
@@ -135,7 +135,7 @@ export function Help() {
                 </div>
               ))}
             </div>
-            <p className="mt-2 text-[10px] leading-relaxed text-ink-mute">
+            <p className="mt-2 text-[11px] leading-relaxed text-ink-mute">
               Numbers can change. Save them offline and confirm locally on arrival.
             </p>
           </div>

@@ -1,4 +1,5 @@
-export function npr(value: number): string {
+export function npr(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '—'
   return `Rs. ${Math.round(value).toLocaleString('en-IN')}`
 }
 
@@ -30,14 +31,52 @@ export function addDays(iso: string, days: number): string {
   return d.toISOString().slice(0, 10)
 }
 
-export function formatDate(iso: string, opts?: { short?: boolean }): string {
-  const d = parseDate(iso)
-  if (Number.isNaN(d.getTime())) return iso
-  return d.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: opts?.short ? 'short' : 'long',
-    year: 'numeric',
-  })
+/**
+ * Date format used everywhere in the UI: "29 Nov 2026". One signature for both
+ * traveller and admin screens: a date-only string ("2026-11-29") is read as a
+ * local calendar date, a full ISO timestamp keeps its local day, and a missing
+ * or unparseable value becomes "—".
+ */
+export function formatDate(iso: string | null | undefined): string {
+  const date = toDate(iso)
+  if (!date) return '—'
+  return `${date.getDate()} ${SHORT_MONTHS[date.getMonth()]} ${date.getFullYear()}`
+}
+
+/** "29 Nov 2026 · 14:05" for audit rows, submissions and other timestamps. */
+export function formatDateTime(iso: string | null | undefined): string {
+  const date = toDate(iso)
+  if (!date) return '—'
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${formatDate(iso)} · ${hours}:${minutes}`
+}
+
+/**
+ * Date-only strings must be read as local midnight, because
+ * `new Date('2026-11-29')` is UTC and shifts the day west of Greenwich;
+ * timestamps are read exactly as written.
+ */
+function toDate(iso: string | null | undefined): Date | null {
+  if (!iso) return null
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? parseDate(iso) : new Date(iso)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+/**
+ * Trim prose to a word boundary for card summaries and replace any trailing
+ * punctuation (commas, dashes, stray ellipses) before the ellipsis is added.
+ */
+export function truncateText(value: string, maxLength = 96): string {
+  const clean = value.replace(/\s+/g, ' ').trim()
+  if (clean.length <= maxLength) return clean
+  const clipped = clean.slice(0, maxLength)
+  const boundary = clipped.lastIndexOf(' ')
+  const base = (boundary > maxLength * 0.6 ? clipped.slice(0, boundary) : clipped).replace(
+    /[\s,;:.!?·–—-]+$/u,
+    '',
+  )
+  return `${base}…`
 }
 
 export function formatDateRange(startISO: string, days: number): string {
@@ -48,8 +87,8 @@ export function formatDateRange(startISO: string, days: number): string {
   const sameMonth = s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()
   const startDay = s.getDate()
   const endDay = e.getDate()
-  const startMonth = s.toLocaleDateString('en-GB', { month: 'short' })
-  const endMonth = e.toLocaleDateString('en-GB', { month: 'short' })
+  const startMonth = SHORT_MONTHS[s.getMonth()]
+  const endMonth = SHORT_MONTHS[e.getMonth()]
   if (days <= 1) return `${startDay} ${startMonth} ${s.getFullYear()}`
   if (sameMonth) return `${startDay} – ${endDay} ${endMonth} ${e.getFullYear()}`
   return `${startDay} ${startMonth} – ${endDay} ${endMonth} ${e.getFullYear()}`
@@ -84,9 +123,15 @@ export function plural(count: number, singular: string, pluralForm?: string): st
 
 const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
+/** Copy for an admin destination whose record leaves a value unknown. */
+export const NOT_PRICED = 'Not yet priced'
+export const STAY_NOT_SET = 'Stay not set'
+export const LOCATION_NOT_SET = 'Location not set'
+export const SEASON_NOT_SET = 'Season not set'
+
 export function monthsLabel(months: number[]): string {
   const sorted = [...months].sort((a, b) => a - b)
-  if (!sorted.length) return 'Year-round'
+  if (!sorted.length) return SEASON_NOT_SET
   const runs: Array<[number, number]> = []
   for (const month of sorted) {
     const last = runs[runs.length - 1]
@@ -106,10 +151,44 @@ export function titleCase(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1)
 }
 
+/** "2–4 days", or an explicit gap when nobody stated a duration. */
+export function stayLabel(minDays?: number, maxDays?: number): string {
+  if (minDays === undefined || maxDays === undefined) return STAY_NOT_SET
+  return `${minDays}–${maxDays} days`
+}
+
+/** "Rs. 4,500 / day", or an explicit gap instead of an invented price. */
+export function costPerDayLabel(costPerDay?: number): string {
+  return costPerDay === undefined ? NOT_PRICED : `${npr(costPerDay)} / day`
+}
+
+/** True only when the destination can actually be pinned on a map. */
+export function hasLocation<T extends { lat?: number; lng?: number }>(
+  destination: T,
+): destination is T & { lat: number; lng: number } {
+  return typeof destination.lat === 'number' && typeof destination.lng === 'number'
+}
+
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
 
 export function cx(...values: Array<string | false | null | undefined>): string {
   return values.filter(Boolean).join(' ')
+}
+
+/**
+ * Guards admin-supplied URLs before they reach an <a href>. Returns the parsed
+ * URL only for absolute http(s) links; javascript:, data:, blob:, relative and
+ * malformed values all become null so callers render plain text instead.
+ */
+export function safeHttpUrl(value: string | null): string | null {
+  const raw = value?.trim()
+  if (!raw) return null
+  try {
+    const url = new URL(raw)
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : null
+  } catch {
+    return null
+  }
 }

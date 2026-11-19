@@ -32,7 +32,7 @@ import {
   TextInput,
   UpdatedCell,
 } from '../../components/admin/AdminUI'
-import { currency, formatDate, inputDate, todayInput } from '../../lib/adminFormat'
+import { formatDate, inputDate, npr, todayInput } from '../../lib/adminFormat'
 
 interface ActivityForm {
   destinationId: string
@@ -98,13 +98,12 @@ export function AdminActivities() {
       .list({ pageSize: 100, sort: 'name', order: 'asc' })
       .then((result) => setDestinations(result.items))
       .catch(() => undefined)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [api])
 
   useEffect(() => setPage(1), [debouncedQuery, destinationId, type, status])
 
   const { data, loading, error, reload } = usePagedList(
-    () =>
+    (signal) =>
       api.activities.list({
         q: debouncedQuery,
         destinationId,
@@ -112,7 +111,7 @@ export function AdminActivities() {
         status,
         page,
         pageSize: 20,
-      }),
+      }, signal),
     [debouncedQuery, destinationId, type, status, page],
   )
 
@@ -234,7 +233,7 @@ export function AdminActivities() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[820px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-line bg-paper-2/50 text-[10px] uppercase tracking-[0.12em] text-ink-mute">
+                  <tr className="border-b border-line bg-paper-2/50 text-[11px] uppercase tracking-[0.08em] text-ink-mute">
                     <th className="px-4 py-3 font-semibold">Name</th>
                     <th className="px-3 py-3 font-semibold">Destination</th>
                     <th className="px-3 py-3 font-semibold">Type</th>
@@ -269,8 +268,8 @@ export function AdminActivities() {
                           '—'
                         ) : (
                           <>
-                            <span>{currency(activity.costEstimate)} estimate</span>
-                            <span className="block text-[10px] text-ink-mute">
+                            <span>{npr(activity.costEstimate)} estimate</span>
+                            <span className="block text-[11px] text-ink-mute">
                               updated {formatDate(activity.costUpdatedAt)}
                             </span>
                           </>

@@ -1,12 +1,11 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { ArrowRight, Calculator, Lightbulb, Wallet } from 'lucide-react'
 import type { Accommodation, Transport } from '../types'
 import { ACCOMMODATION_LABELS, CATEGORIES, ORIGINS, TRANSPORT_LABELS } from '../data/taxonomy'
 import { DESTINATIONS, getDestination } from '../data/destinations'
 import { buildRouteOptions, hoursLabel } from '../lib/route'
 import { buildCostBreakdown, savingTips, VERDICT_COPY } from '../lib/pricing'
-import { cx, npr, nprShort } from '../lib/format'
+import { cx, NOT_PRICED, npr, nprShort } from '../lib/format'
 import { ChoiceGrid, Notice, Pill } from '../components/ui'
 import { DestinationImage } from '../components/DestinationImage'
 import { useApp } from '../context/AppContext'
@@ -62,7 +61,7 @@ export function BudgetPlanner() {
     })
     return alt.group <= budget && alt.group >= budget * 0.55
   })
-    .sort((a, b) => a.costPerDay - b.costPerDay)
+    .sort((a, b) => (a.costPerDay ?? Infinity) - (b.costPerDay ?? Infinity))
     .slice(0, 3)
 
   const maxLine = Math.max(...breakdown.lines.map((line) => line.group), 1)
@@ -96,7 +95,7 @@ export function BudgetPlanner() {
                   const next = getDestination(event.target.value)
                   setSlug(event.target.value)
                   if (next) {
-                    setDays(Math.min(10, Math.max(2, next.minDays)))
+                    setDays(Math.min(10, Math.max(2, next.minDays ?? 3)))
                   }
                 }}
               >
@@ -207,7 +206,7 @@ export function BudgetPlanner() {
           <div className="mt-5 overflow-hidden rounded-xl border border-line">
             <DestinationImage destination={destination} className="h-24 w-full" />
           </div>
-          <p className="mt-2 text-[10px] leading-relaxed text-ink-mute">
+          <p className="mt-2 text-[11px] leading-relaxed text-ink-mute">
             Route: {route.mode.toLowerCase()} · {route.distanceKm} km · {hoursLabel(route.hours)} each way. Public
             transport keeps this estimate at its floor.
           </p>
@@ -217,7 +216,7 @@ export function BudgetPlanner() {
           <div className="rounded-2xl border border-line bg-white/60 p-5 sm:p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-mute">Estimated cost</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">Estimated cost</p>
                 <p className="mt-1 font-display text-[clamp(2rem,4vw,2.8rem)] leading-none text-ink">
                   {npr(breakdown.group)}
                 </p>
@@ -257,7 +256,7 @@ export function BudgetPlanner() {
                 style={{ width: `${Math.min(100, (breakdown.group / Math.max(1, budget)) * 100)}%` }}
               />
             </div>
-            <div className="mt-1.5 flex justify-between text-[10px] text-ink-mute">
+            <div className="mt-1.5 flex justify-between text-[11px] text-ink-mute">
               <span>Estimate {nprShort(breakdown.group)}</span>
               <span>Budget {nprShort(budget)}</span>
             </div>
@@ -278,7 +277,7 @@ export function BudgetPlanner() {
                       style={{ width: `${(line.group / maxLine) * 100}%` }}
                     />
                   </div>
-                  <p className="mt-0.5 text-[9px] text-ink-mute">{line.detail}</p>
+                  <p className="mt-0.5 text-[11px] text-ink-mute">{line.detail}</p>
                 </div>
               ))}
               <div className="flex items-center justify-between border-t border-line pt-2 text-[11px]">
@@ -295,7 +294,7 @@ export function BudgetPlanner() {
 
           {tips.length > 0 ? (
             <div className="rounded-2xl border border-line bg-white/55 p-5">
-              <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-mute">
+              <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
                 <Lightbulb size={12} /> Three ways to close the gap
               </p>
               <div className="mt-3 space-y-2.5">
@@ -324,7 +323,7 @@ export function BudgetPlanner() {
 
           {cheaper.length > 0 ? (
             <div className="rounded-2xl border border-line bg-white/55 p-5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-mute">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
                 Affordable swaps at the same budget
               </p>
               <div className="mt-3 space-y-2">
@@ -334,14 +333,17 @@ export function BudgetPlanner() {
                     type="button"
                     onClick={() => {
                       setSlug(item.slug)
-                      setDays(Math.min(10, Math.max(2, item.minDays)))
+                      setDays(Math.min(10, Math.max(2, item.minDays ?? 3)))
                     }}
                     className="flex w-full items-center justify-between gap-3 rounded-xl border border-line/80 px-3 py-2 text-left transition hover:border-pine-3"
                   >
                     <span>
                       <span className="block text-xs font-medium text-ink">{item.name}</span>
-                      <span className="block text-[10px] text-ink-mute">
-                        {item.district} · {item.difficulty} · from {npr(item.costPerDay)}/day
+                      <span className="block text-[11px] text-ink-mute">
+                        {item.district} · {item.difficulty} ·{' '}
+                        {item.costPerDay === undefined
+                          ? NOT_PRICED.toLowerCase()
+                          : `from ${npr(item.costPerDay)}/day`}
                       </span>
                     </span>
                     <ArrowRight size={13} className="shrink-0 text-pine" />
@@ -362,8 +364,10 @@ export function BudgetPlanner() {
           >
             Build this trip day by day <ArrowRight size={15} />
           </button>
-          <p className="text-center text-[10px] text-ink-mute">
-            The planner uses {npr(destination.costPerDay)} per day as its local cost baseline for {destination.name}.
+          <p className="text-center text-[11px] text-ink-mute">
+            {destination.costPerDay === undefined
+              ? `${destination.name} has no local daily cost yet, so estimates use the national baseline.`
+              : `The planner uses ${npr(destination.costPerDay)} per day as its local cost baseline for ${destination.name}.`}
           </p>
         </div>
       </div>

@@ -125,7 +125,7 @@ export function StatusBadge({ status }: { status: ContentStatus | ReviewStatus |
   return (
     <span
       className={cx(
-        'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em]',
+        'inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em]',
         styles[status] ?? 'bg-paper-2 text-ink-soft border-line',
       )}
     >
@@ -155,7 +155,7 @@ export function Field({
 }) {
   return (
     <label className={cx('block', className)}>
-      <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-mute">
+      <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
         {label}
         {required ? <span className="ml-1 text-saffron">*</span> : null}
       </span>

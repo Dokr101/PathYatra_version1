@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { prisma } from '../lib/prisma.js'
 import { ApiError, asyncHandler, parseBody } from '../lib/api-error.js'
 import { param } from '../lib/params.js'
-import { requireAuth } from '../middleware/auth.js'
+import { getUserId, requireAuth } from '../middleware/auth.js'
 import {
   createItinerarySchema,
   updateItinerarySchema,
@@ -64,7 +64,7 @@ itinerariesRouter.get(
   '/',
   asyncHandler(async (req, res) => {
     const itineraries = await prisma.itinerary.findMany({
-      where: { userId: req.userId! },
+      where: { userId: getUserId(req) },
       orderBy: [{ startDate: 'desc' }, { title: 'asc' }],
       include: itineraryInclude,
     })
@@ -77,7 +77,7 @@ itinerariesRouter.get(
   '/:id',
   asyncHandler(async (req, res) => {
     const itinerary = await prisma.itinerary.findFirst({
-      where: { id: param(req, 'id'), userId: req.userId! },
+      where: { id: param(req, 'id'), userId: getUserId(req) },
       include: itineraryInclude,
     })
 
@@ -101,7 +101,7 @@ itinerariesRouter.post(
 
     const itinerary = await prisma.itinerary.create({
       data: {
-        userId: req.userId!,
+        userId: getUserId(req),
         destinationId,
         title: data.title,
         startingPoint: data.startingPoint ?? null,
@@ -110,6 +110,7 @@ itinerariesRouter.post(
         numTravelers: data.numTravelers,
         totalBudget: data.totalBudget ?? null,
         status: data.status,
+        clientPlan: data.clientPlan ?? null,
         days: data.days?.length ? { create: buildDays(data.days) } : undefined,
       },
       include: itineraryInclude,
@@ -123,7 +124,7 @@ const updateItinerary = asyncHandler(async (req, res) => {
   const data = parseBody(updateItinerarySchema, req.body)
 
   const existing = await prisma.itinerary.findFirst({
-    where: { id: param(req, 'id'), userId: req.userId! },
+    where: { id: param(req, 'id'), userId: getUserId(req) },
     select: { id: true },
   })
 
@@ -149,6 +150,7 @@ const updateItinerary = asyncHandler(async (req, res) => {
         ...(data.numTravelers !== undefined ? { numTravelers: data.numTravelers } : {}),
         ...(data.totalBudget !== undefined ? { totalBudget: data.totalBudget ?? null } : {}),
         ...(data.status !== undefined ? { status: data.status } : {}),
+        ...(data.clientPlan !== undefined ? { clientPlan: data.clientPlan ?? null } : {}),
         ...(data.days?.length ? { days: { create: buildDays(data.days) } } : {}),
       },
       include: itineraryInclude,
@@ -165,7 +167,7 @@ itinerariesRouter.delete(
   '/:id',
   asyncHandler(async (req, res) => {
     const result = await prisma.itinerary.deleteMany({
-      where: { id: param(req, 'id'), userId: req.userId! },
+      where: { id: param(req, 'id'), userId: getUserId(req) },
     })
 
     if (result.count === 0) {

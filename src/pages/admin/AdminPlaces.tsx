@@ -103,13 +103,12 @@ export function AdminPlaces() {
       .list({ pageSize: 100, sort: 'name', order: 'asc' })
       .then((result) => setDestinations(result.items))
       .catch(() => undefined)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [api])
 
   useEffect(() => setPage(1), [debouncedQuery, destinationId, type, status])
 
   const { data, loading, error, reload } = usePagedList(
-    () =>
+    (signal) =>
       api.places.list({
         q: debouncedQuery,
         destinationId,
@@ -117,7 +116,7 @@ export function AdminPlaces() {
         status,
         page,
         pageSize: 20,
-      }),
+      }, signal),
     [debouncedQuery, destinationId, type, status, page],
   )
 
@@ -241,7 +240,7 @@ export function AdminPlaces() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[760px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-line bg-paper-2/50 text-[10px] uppercase tracking-[0.12em] text-ink-mute">
+                  <tr className="border-b border-line bg-paper-2/50 text-[11px] uppercase tracking-[0.08em] text-ink-mute">
                     <th className="px-4 py-3 font-semibold">Name</th>
                     <th className="px-3 py-3 font-semibold">Destination</th>
                     <th className="px-3 py-3 font-semibold">Type</th>

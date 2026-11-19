@@ -10,6 +10,7 @@ import {
   searchTerm,
   writeAudit,
 } from '../../lib/admin.js'
+import { getUserId } from '../../middleware/auth.js'
 
 export const adminUsersRouter = Router()
 
@@ -84,14 +85,19 @@ adminUsersRouter.patch(
       }
     }
 
+    // Bump on both edges, not just disable. While the account is off, the
+    // middleware rejects every token via `isActive`; without the bump, a token
+    // minted before the disable would start working again the moment the
+    // account is re-enabled, up to 24 hours later. An account-state change is
+    // exactly when a fresh sign-in should be required.
     const user = await prisma.user.update({
       where: { id },
-      data: { isActive },
+      data: { isActive, tokenVersion: { increment: 1 } },
       select: safeUser,
     })
 
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: isActive ? 'user.enable' : 'user.disable',
       entityType: 'User',
       entityId: id,
@@ -131,7 +137,7 @@ adminUsersRouter.patch(
     })
 
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: 'user.role',
       entityType: 'User',
       entityId: id,

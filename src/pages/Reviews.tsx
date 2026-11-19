@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowRight, BadgeCheck, MapPin, MessageSquarePlus, Star, ThumbsUp } from 'lucide-react'
+import { ArrowRight, BadgeCheck, Clock, HardDrive, MapPin, MessageSquarePlus, Star, ThumbsUp } from 'lucide-react'
 import type { Review } from '../types'
 import { useApp } from '../context/AppContext'
 import { DESTINATIONS, getDestination } from '../data/destinations'
 import { GUIDES } from '../data/content'
+import { useDestinationReviews } from '../lib/publicReviews'
 import { cx, formatDate, npr, initials, todayISO } from '../lib/format'
 import { Modal, Pill, Rating, SectionHeading } from '../components/ui'
 
@@ -20,9 +21,29 @@ const CATEGORIES: Array<Review['category'] | 'All'> = [
 ]
 
 export function Reviews() {
-  const { reviews, user, openAuth, addReview, voteHelpful, votedReviews } = useApp()
+  const {
+    reviews,
+    user,
+    submitReview,
+    voteHelpful,
+    votedReviews,
+    reviewSyncError,
+    retryReviewsSync,
+  } = useApp()
   const [params] = useSearchParams()
   const destinationFilter = params.get('destination')
+  // The API pages reviews; 50 is its maximum page size, and this list is
+  // filtered and sorted client-side.
+  const { reviews: serverReviews, error: serverReviewsError, retry: retryServerReviews } =
+    useDestinationReviews(destinationFilter ?? undefined, { pageSize: 50 })
+  const allReviews = useMemo(() => {
+    const serverIds = new Set(serverReviews.map((entry) => entry.id))
+    // The approved server copy replaces the local pending copy of the same review.
+    const localOnly = reviews.filter(
+      (entry) => !serverIds.has(entry.id) && !(entry.serverId && serverIds.has(entry.serverId)),
+    )
+    return [...localOnly, ...serverReviews]
+  }, [reviews, serverReviews])
   const [category, setCategory] = useState<Review['category'] | 'All'>('All')
   const [sort, setSort] = useState<'recent' | 'helpful' | 'highest'>('recent')
   const [query, setQuery] = useState('')
@@ -36,7 +57,7 @@ export function Reviews() {
   const [travelDate, setTravelDate] = useState(todayISO())
 
   const filtered = useMemo(() => {
-    let list = [...reviews]
+    let list = [...allReviews]
     if (destinationFilter) list = list.filter((review) => review.destinationSlug === destinationFilter)
     if (category !== 'All') list = list.filter((review) => review.category === category)
     if (query.trim()) {
@@ -52,34 +73,28 @@ export function Reviews() {
     if (sort === 'highest') list.sort((a, b) => b.rating - a.rating)
     if (sort === 'recent') list.sort((a, b) => b.date.localeCompare(a.date))
     return list
-  }, [category, destinationFilter, query, reviews, sort])
+  }, [allReviews, category, destinationFilter, query, sort])
 
-  const average = reviews.length ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : 0
+  const average = allReviews.length ? allReviews.reduce((sum, review) => sum + review.rating, 0) / allReviews.length : 0
   const distribution = [5, 4, 3, 2, 1].map((star) => ({
     star,
-    count: reviews.filter((review) => review.rating === star).length,
+    count: allReviews.filter((review) => review.rating === star).length,
   }))
   const filterDestination = destinationFilter ? getDestination(destinationFilter) : undefined
 
-  const openForm = () => {
-    if (!user) {
-      openAuth('Sign in to publish a community review. Reviews are labelled as community contributions.', '/reviews')
-      return
-    }
-    setOpen(true)
-  }
+  const openForm = () => setOpen(true)
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault()
-    if (!user) return
     if (!text.trim() || !subject.trim()) return
     const destination = getDestination(reviewDestination)
-    addReview({
-      author: user.name,
-      home: user.homeCity,
+    if (!destination) return
+    void submitReview({
+      author: user?.name ?? 'Guest traveller',
+      home: user?.homeCity ?? '',
       category: reviewCategory,
       subject: subject.trim(),
-      destinationSlug: destination?.slug ?? reviewDestination ?? 'kathmandu-heritage',
+      destinationSlug: destination.slug,
       rating,
       date: travelDate || todayISO(),
       spend: spend ? Number(spend) : undefined,
@@ -111,6 +126,34 @@ export function Reviews() {
         </button>
       </div>
 
+      {reviewSyncError ? (
+        <div
+          role="status"
+          className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-marigold/40 bg-marigold/10 px-4 py-3"
+        >
+          <p className="text-xs text-ink-soft">
+            <strong className="font-semibold text-ink">Saved on this device.</strong> {reviewSyncError}
+          </p>
+          <button type="button" onClick={retryReviewsSync} className="btn-ghost shrink-0 py-2 text-xs">
+            Retry sync
+          </button>
+        </div>
+      ) : null}
+
+      {serverReviewsError && destinationFilter ? (
+        <div
+          role="status"
+          className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-paper-2/60 px-4 py-3"
+        >
+          <p className="text-xs text-ink-soft">
+            Approved reviews could not be loaded. Showing this device’s copy.
+          </p>
+          <button type="button" onClick={retryServerReviews} className="btn-ghost shrink-0 py-2 text-xs">
+            Try again
+          </button>
+        </div>
+      ) : null}
+
       {filterDestination ? (
         <div className="mt-5 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-line bg-paper-2/60 px-4 py-3">
           <p className="text-xs text-ink-soft">
@@ -136,7 +179,7 @@ export function Reviews() {
             <div className="mt-4 space-y-1.5">
               {distribution.map((row) => (
                 <div key={row.star} className="flex items-center gap-2">
-                  <span className="w-3 text-[10px] text-ink-mute">{row.star}</span>
+                  <span className="w-3 text-[11px] text-ink-mute">{row.star}</span>
                   <Star size={9} className="fill-marigold text-marigold" />
                   <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-paper-2">
                     <div
@@ -144,14 +187,14 @@ export function Reviews() {
                       style={{ width: `${reviews.length ? (row.count / reviews.length) * 100 : 0}%` }}
                     />
                   </div>
-                  <span className="w-4 text-right text-[9px] text-ink-mute">{row.count}</span>
+                  <span className="w-4 text-right text-[11px] text-ink-mute">{row.count}</span>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="rounded-2xl border border-line bg-white/55 p-4">
-            <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-mute">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
               <BadgeCheck size={12} /> About verification
             </p>
             <p className="mt-1.5 text-[11px] leading-relaxed text-ink-soft">
@@ -161,7 +204,7 @@ export function Reviews() {
           </div>
 
           <div className="rounded-2xl border border-line bg-paper-2/50 p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-mute">Review categories</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">Review categories</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {CATEGORIES.filter((item) => item !== 'All').map((item) => (
                 <button
@@ -169,7 +212,7 @@ export function Reviews() {
                   type="button"
                   onClick={() => setCategory(category === item ? 'All' : item)}
                   className={cx(
-                    'rounded-full border px-2.5 py-1 text-[10px] transition',
+                    'rounded-full border px-2.5 py-1 text-[11px] transition',
                     category === item ? 'border-pine bg-pine text-paper' : 'border-line text-ink-soft hover:border-pine-3',
                   )}
                 >
@@ -209,15 +252,19 @@ export function Reviews() {
               return (
                 <article key={review.id} className="rounded-2xl border border-line bg-white/55 p-4">
                   <div className="flex items-start gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pine/10 text-[11px] font-semibold text-pine">
+                    {/* Decorative: the author's name follows on the next line. */}
+                    <span
+                      aria-hidden="true"
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-pine/10 text-[11px] font-semibold text-pine"
+                    >
                       {initials(review.author)}
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
                           <p className="text-xs font-semibold text-ink">{review.author}</p>
-                          <p className="text-[10px] text-ink-mute">
-                            {review.home} · {formatDate(review.date, { short: true })}
+                          <p className="text-[11px] text-ink-mute">
+                            {[review.home, formatDate(review.date)].filter(Boolean).join(' · ')}
                           </p>
                         </div>
                         <Rating value={review.rating} size={11} />
@@ -225,21 +272,31 @@ export function Reviews() {
 
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                         <Pill tone="outline">{review.category}</Pill>
-                        <span className="text-[10px] text-ink-mute">{review.subject}</span>
+                        <span className="text-[11px] text-ink-mute">{review.subject}</span>
                         {destination ? (
-                          <Link to={`/explore/${destination.slug}`} className="text-[10px] font-medium text-pine">
+                          <Link to={`/explore/${destination.slug}`} className="text-[11px] font-medium text-pine">
                             · {destination.district}
                           </Link>
                         ) : null}
-                        <span className="rounded-full bg-paper-2 px-2 py-0.5 text-[9px] uppercase tracking-wide text-ink-mute">
+                        <span className="rounded-full bg-paper-2 px-2 py-0.5 text-[11px] uppercase tracking-wide text-ink-mute">
                           Community
                         </span>
+                        {review.status === 'pending' && review.syncState === 'synced' ? (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-marigold/40 bg-marigold/15 px-2 py-0.5 text-[11px] font-medium text-[#7a5410]">
+                            <Clock size={9} /> Pending moderation
+                          </span>
+                        ) : null}
+                        {review.syncState && review.syncState !== 'synced' ? (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-line bg-paper-2 px-2 py-0.5 text-[11px] font-medium text-ink-mute">
+                            <HardDrive size={9} /> Saved on this device
+                          </span>
+                        ) : null}
                       </div>
 
                       <p className="mt-2 text-xs leading-relaxed text-ink-soft">{review.text}</p>
 
                       <div className="mt-2.5 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-3 text-[10px] text-ink-mute">
+                        <div className="flex items-center gap-3 text-[11px] text-ink-mute">
                           {review.spend ? <span>Spent about {npr(review.spend)}</span> : null}
                           {destination ? (
                             <Link to={`/explore/${destination.slug}`} className="inline-flex items-center gap-1 text-pine">
@@ -252,7 +309,7 @@ export function Reviews() {
                           onClick={() => voteHelpful(review.id)}
                           aria-pressed={voted}
                           className={cx(
-                            'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] transition',
+                            'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] transition',
                             voted ? 'border-pine bg-pine/10 text-pine' : 'border-line text-ink-mute hover:border-pine-3',
                           )}
                         >
@@ -298,11 +355,11 @@ export function Reviews() {
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="font-display text-lg leading-tight text-ink">{guide.name}</p>
-                  <p className="text-[10px] text-ink-mute">
+                  <p className="text-[11px] text-ink-mute">
                     {guide.base} · {guide.languages.join(', ')}
                   </p>
                 </div>
-                <span className="flex items-center gap-0.5 text-[10px] font-medium text-ink">
+                <span className="flex items-center gap-0.5 text-[11px] font-medium text-ink">
                   {guide.rating.toFixed(1)} <Star size={9} className="fill-marigold text-marigold" />
                 </span>
               </div>
@@ -313,7 +370,7 @@ export function Reviews() {
                   </span>
                 ))}
               </div>
-              <div className="mt-3 flex items-center justify-between border-t border-line pt-2.5 text-[10px]">
+              <div className="mt-3 flex items-center justify-between border-t border-line pt-2.5 text-[11px]">
                 <span className="text-ink-mute">{guide.trips} journeys guided</span>
                 <span className="font-medium text-ink">{npr(guide.dayRate)} / day</span>
               </div>
@@ -371,7 +428,7 @@ export function Reviews() {
 
           <label className="block">
             <span className="field-label">Destination or place</span>
-            <select className="field" value={reviewDestination} onChange={(event) => {
+            <select className="field" value={reviewDestination} required onChange={(event) => {
               setReviewDestination(event.target.value)
               const match = getDestination(event.target.value)
               if (match) setSubject(match.name)
@@ -406,11 +463,19 @@ export function Reviews() {
             <input className="field" type="number" min={0} value={spend} onChange={(event) => setSpend(event.target.value)} placeholder="12000" />
           </label>
 
-          <button type="submit" className="btn-primary w-full" disabled={!text.trim() || !subject.trim()}>
-            <ThumbsUp size={14} /> Publish community review
+          <button
+            type="submit"
+            className="btn-primary w-full"
+            disabled={!text.trim() || !subject.trim() || !reviewDestination}
+          >
+            <ThumbsUp size={14} /> {user ? 'Publish community review' : 'Save review on this device'}
           </button>
-          <p className="text-[10px] leading-relaxed text-ink-mute">
-            Published under {user?.name}. Stored locally in this demo build. Do not include personal contact details.
+          <p className="text-[11px] leading-relaxed text-ink-mute">
+            {user
+              ? `Published under ${user.name}. Reviews are stored in your account and appear to everyone once a moderator approves them.`
+              : 'You are signed out, so this review stays on this device and is labelled that way. Sign in to submit it for publication.'}{' '}
+            The bundled sample reviews on this page are illustrative, not live community content. Do not include
+            personal contact details.
           </p>
         </form>
       </Modal>

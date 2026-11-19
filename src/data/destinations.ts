@@ -66,6 +66,8 @@ export const POPULAR_SLUGS = [
   'chitwan',
   'annapurna-circuit',
   'lumbini',
+  'rara-lake',
+  'bhaktapur',
 ]
 
 export function popularDestinations(): Destination[] {
@@ -81,6 +83,3 @@ export function relatedDestinations(destination: Destination, count = 3): Destin
   return [...explicit, ...sameCategory].slice(0, count)
 }
 
-export function averageCostPerDay(destination: Destination): number {
-  return destination.costPerDay
-}

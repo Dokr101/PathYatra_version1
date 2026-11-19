@@ -4,6 +4,7 @@ import { ApiError, asyncHandler, parseBody } from '../../lib/api-error.js'
 import { param } from '../../lib/params.js'
 import { reorderSchema, categorySchema } from '../../schemas/admin.js'
 import { queryString, reorderByIds, searchTerm, uniqueSlug, writeAudit } from '../../lib/admin.js'
+import { getUserId } from '../../middleware/auth.js'
 
 export const adminCategoriesRouter = Router()
 
@@ -43,7 +44,7 @@ adminCategoriesRouter.post(
       include: { _count: { select: { destinations: true } } },
     })
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: 'category.create',
       entityType: 'Category',
       entityId: category.id,
@@ -74,7 +75,7 @@ adminCategoriesRouter.patch(
       include: { _count: { select: { destinations: true } } },
     })
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: 'category.update',
       entityType: 'Category',
       entityId: id,
@@ -102,7 +103,7 @@ adminCategoriesRouter.delete(
     }
     await prisma.category.delete({ where: { id } })
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: 'category.delete',
       entityType: 'Category',
       entityId: id,
@@ -118,7 +119,7 @@ adminCategoriesRouter.post(
     const { ids } = parseBody(reorderSchema, req.body)
     await reorderByIds('category', ids)
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: 'category.reorder',
       entityType: 'Category',
       summary: `Reordered ${ids.length} categories`,

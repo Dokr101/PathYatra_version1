@@ -73,8 +73,8 @@ export function SharedItinerary() {
             <article key={day.index} className="print-avoid-break rounded-2xl border border-line bg-white/60 p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-mute">
-                    Day {day.index} · {formatDate(day.date, { short: true })}
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
+                    Day {day.index} · {formatDate(day.date)}
                   </p>
                   <h2 className="mt-0.5 font-display text-lg leading-tight text-ink">{day.title}</h2>
                   <p className="text-[11px] text-ink-mute">{day.subtitle}</p>
@@ -84,16 +84,16 @@ export function SharedItinerary() {
               <div className="mt-3 space-y-2">
                 {day.blocks.map((block, index) => (
                   <div key={index} className="flex items-start gap-3 text-[11px]">
-                    <span className="w-[70px] shrink-0 text-[9px] uppercase tracking-wide text-ink-mute">{block.time}</span>
+                    <span className="w-[70px] shrink-0 text-[11px] uppercase tracking-wide text-ink-mute">{block.time}</span>
                     <span className="min-w-0 flex-1">
                       <span className="block font-medium text-ink">{block.title}</span>
-                      {block.note ? <span className="block text-[10px] text-ink-mute">{block.note}</span> : null}
+                      {block.note ? <span className="block text-[11px] text-ink-mute">{block.note}</span> : null}
                     </span>
-                    {block.cost > 0 ? <span className="shrink-0 text-[10px] text-ink-soft">{npr(block.cost)}</span> : null}
+                    {block.cost > 0 ? <span className="shrink-0 text-[11px] text-ink-soft">{npr(block.cost)}</span> : null}
                   </div>
                 ))}
               </div>
-              <p className="mt-2 border-t border-line pt-2 text-[10px] text-ink-mute">
+              <p className="mt-2 border-t border-line pt-2 text-[11px] text-ink-mute">
                 {day.stay ? `Stay: ${day.stay}. ` : ''}
                 {day.meals ? `Eat: ${day.meals}.` : ''}
               </p>
@@ -103,7 +103,7 @@ export function SharedItinerary() {
 
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-2xl border border-line bg-white/60 p-5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-mute">Shared cost summary</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">Shared cost summary</p>
             <p className="mt-1 font-display text-3xl leading-none text-ink">{npr(plan.costs.group)}</p>
             <p className="mt-1 text-xs text-ink-soft">
               {npr(plan.costs.perPerson)} per person · budget {npr(plan.costs.budget)}
@@ -126,12 +126,12 @@ export function SharedItinerary() {
           </div>
 
           <div className="mt-3 rounded-2xl border border-line bg-paper-2/60 p-4">
-            <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-mute">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
               <Wallet size={11} /> Travel notes
             </p>
             <ul className="mt-2 space-y-1.5">
               {plan.notes.slice(0, 4).map((note) => (
-                <li key={note.slice(0, 20)} className="text-[10px] leading-relaxed text-ink-soft">
+                <li key={note.slice(0, 20)} className="text-[11px] leading-relaxed text-ink-soft">
                   · {note}
                 </li>
               ))}

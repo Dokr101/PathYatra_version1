@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
 import { env } from '../lib/env.js'
 import { ApiError } from '../lib/api-error.js'
+import { logger } from '../lib/logger.js'
 
 const UPLOAD_URL = 'https://api.cloudinary.com/v1_1'
 
@@ -105,6 +106,6 @@ export async function destroyImage(publicId: string): Promise<void> {
   })
   if (!response.ok) {
     // The database record is still removed; a stale Cloudinary asset is not fatal.
-    console.warn(`[cloudinary] could not destroy ${publicId}: ${response.status}`)
+    logger.warn({ publicId, status: response.status }, 'cloudinary destroy failed')
   }
 }

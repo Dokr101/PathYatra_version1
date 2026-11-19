@@ -1,6 +1,6 @@
 import 'dotenv/config'
-import bcrypt from 'bcrypt'
 import { PrismaClient } from '@prisma/client'
+import { hashPassword } from '../src/lib/password.js'
 
 const prisma = new PrismaClient()
 
@@ -17,7 +17,7 @@ async function main() {
     throw new Error('ADMIN_SEED_PASSWORD must be at least 12 characters — generate one with: openssl rand -base64 24')
   }
 
-  const passwordHash = await bcrypt.hash(password, 10)
+  const passwordHash = await hashPassword(password)
   const user = await prisma.user.upsert({
     where: { email },
     update: { role: 'ADMIN', isActive: true, passwordHash },

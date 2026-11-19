@@ -1,6 +1,23 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { Star, X } from 'lucide-react'
 import { cx } from '../lib/format'
+
+/** Elements a dialog can legitimately move focus to. */
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',')
+
+function focusables(root: HTMLElement): HTMLElement[] {
+  return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+    (element) => !element.hasAttribute('hidden') && element.getAttribute('aria-hidden') !== 'true',
+  )
+}
 
 export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
   return <p className={cx('eyebrow', className)}>{children}</p>
@@ -44,7 +61,7 @@ export function Pill({
     neutral: 'bg-paper-2 text-ink-soft border-transparent',
     pine: 'bg-pine text-paper border-transparent',
     saffron: 'bg-saffron-soft text-clay border-transparent',
-    marigold: 'bg-[#f7e7c6] text-[#7a5410] border-transparent',
+    marigold: 'bg-accent-soft text-accent border-transparent',
     clay: 'bg-[#f3dcd4] text-clay border-transparent',
     outline: 'bg-transparent text-ink-soft border-line',
   }
@@ -91,7 +108,7 @@ export function Stat({
   return (
     <div className={cx('rounded-2xl border border-line bg-white/55 px-4 py-3', className)}>
       <p className="font-display text-2xl leading-none text-ink">{value}</p>
-      <p className="mt-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-ink-mute">{label}</p>
+      <p className="mt-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-ink-mute">{label}</p>
       {hint ? <p className="mt-1 text-[11px] text-ink-mute">{hint}</p> : null}
     </div>
   )
@@ -143,6 +160,9 @@ export function Modal({
 }) {
   const [rendered, setRendered] = useState(open)
   const [closing, setClosing] = useState(false)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  /** Whatever had focus before the dialog opened, so it can get it back. */
+  const triggerRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     if (open) {
@@ -161,10 +181,64 @@ export function Modal({
     return () => window.clearTimeout(timer)
   }, [open, rendered])
 
+  // The dialog is portaled to <body>, so the app root can be inert while it is
+  // open: everything behind the overlay leaves the tab order and the a11y tree.
   useEffect(() => {
-    if (!open) return
+    if (!open) return undefined
+    const root = document.getElementById('root')
+    if (!root) return undefined
+    const wasInert = root.hasAttribute('inert')
+    root.setAttribute('inert', '')
+    return () => {
+      if (!wasInert) root.removeAttribute('inert')
+    }
+  }, [open])
+
+  // Move focus into the dialog on open and hand it back to the trigger on close.
+  useEffect(() => {
+    if (!open || !rendered) return undefined
+    const dialog = dialogRef.current
+    if (!dialog) return undefined
+    triggerRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const [first] = focusables(dialog)
+    ;(first ?? dialog).focus()
+
+    return () => {
+      const trigger = triggerRef.current
+      triggerRef.current = null
+      if (trigger?.isConnected) trigger.focus()
+    }
+  }, [open, rendered])
+
+  useEffect(() => {
+    if (!open) return undefined
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') {
+        onClose()
+        return
+      }
+      if (event.key !== 'Tab') return
+
+      const dialog = dialogRef.current
+      if (!dialog) return
+      const items = focusables(dialog)
+      if (items.length === 0) {
+        event.preventDefault()
+        dialog.focus()
+        return
+      }
+
+      const first = items[0]
+      const last = items[items.length - 1]
+      const active = document.activeElement
+      const outside = !(active instanceof HTMLElement) || !dialog.contains(active)
+      const wrapBackwards = event.shiftKey && (outside || active === first)
+      const wrapForwards = !event.shiftKey && (outside || active === last)
+      if (wrapBackwards || wrapForwards) {
+        event.preventDefault()
+        ;(wrapBackwards ? last : first).focus()
+      }
     }
     document.addEventListener('keydown', onKey)
     const previous = document.body.style.overflow
@@ -177,7 +251,7 @@ export function Modal({
 
   if (!rendered) return null
 
-  return (
+  return createPortal(
     <div
       aria-hidden={closing}
       inert={closing}
@@ -186,11 +260,19 @@ export function Modal({
         closing && 'pointer-events-none motion-overlay-exit',
       )}
     >
-      <button type="button" className="absolute inset-0 cursor-default" aria-label="Close" onClick={onClose} />
+      <button
+        type="button"
+        tabIndex={-1}
+        className="absolute inset-0 cursor-default"
+        aria-label="Close"
+        onClick={onClose}
+      />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
+        tabIndex={-1}
         className={cx(
           'motion-dialog relative z-10 max-h-[92vh] w-full overflow-y-auto rounded-t-3xl border border-line bg-paper shadow-lift sm:rounded-3xl',
           closing && 'motion-dialog-exit',
@@ -217,7 +299,8 @@ export function Modal({
         <div className={cx('px-6 py-5', contentClassName)}>{children}</div>
         {footer ? <div className="border-t border-line bg-paper-2/50 px-6 py-4">{footer}</div> : null}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

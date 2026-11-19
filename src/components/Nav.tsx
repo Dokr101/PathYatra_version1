@@ -161,7 +161,7 @@ export function TravellerSidebar({
             <img src={logoMark} alt="" className="h-9 w-9 shrink-0 object-contain" />
             <span className="sidebar-label">
               <span className="block font-display text-lg leading-none text-ink">PathYatra</span>
-              <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-mute">
+              <span className="mt-1 block text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
                 Traveller panel
               </span>
             </span>
@@ -183,7 +183,7 @@ export function TravellerSidebar({
         </div>
 
         <nav className={cx('no-scrollbar flex-1 overflow-y-auto px-3 py-3', compact && 'lg:px-1.5')}>
-          <p className={cx('px-2 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-mute/80', compact && 'lg:hidden')}>
+          <p className={cx('px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute/80', compact && 'lg:hidden')}>
             Travel
           </p>
           <ul className="space-y-0.5">
@@ -210,7 +210,7 @@ export function TravellerSidebar({
             ))}
           </ul>
 
-          <p className={cx('px-2 pb-2 pt-5 text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-mute/80', compact && 'lg:hidden')}>
+          <p className={cx('px-2 pb-2 pt-5 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute/80', compact && 'lg:hidden')}>
             Your account
           </p>
           <div className="space-y-0.5">
@@ -225,7 +225,7 @@ export function TravellerSidebar({
             >
               <Search size={16} strokeWidth={1.8} className="shrink-0" />
               <span className="sidebar-label leading-tight">Search Nepal</span>
-              <kbd className={cx('ml-auto rounded border border-line bg-paper px-1.5 py-0.5 text-[10px] text-ink-mute', compact && 'lg:hidden')}>
+              <kbd className={cx('ml-auto rounded border border-line bg-paper px-1.5 py-0.5 text-[11px] text-ink-mute', compact && 'lg:hidden')}>
                 /
               </kbd>
             </button>
@@ -249,7 +249,7 @@ export function TravellerSidebar({
               {wishlist.length > 0 ? (
                 <span
                   className={cx(
-                    'ml-auto rounded-full bg-saffron px-1.5 py-0.5 text-[9px] font-semibold text-white',
+                    'ml-auto rounded-full bg-saffron px-1.5 py-0.5 text-[11px] font-semibold text-white',
                     compact && 'lg:hidden',
                   )}
                 >
@@ -314,7 +314,7 @@ export function TravellerSidebar({
               <div className={cx('mb-2 rounded-xl bg-white/60 px-3 py-2.5', compact && 'lg:hidden')}>
                 <p className="truncate text-xs font-medium text-ink">{user.name}</p>
                 <p className="truncate text-[11px] text-ink-mute">{user.email}</p>
-                <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-pine-3">
+                <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-pine-3">
                   {isAdmin ? 'Admin' : 'Traveller'}
                 </p>
               </div>
@@ -387,7 +387,7 @@ export function TravellerSidebar({
               </button>
             </div>
             <div className="max-h-[55vh] overflow-y-auto p-2">
-              <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-mute">
+              <p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
                 {query.trim() ? `${results.length} matches` : 'Start here'}
               </p>
               {results.length === 0 ? (

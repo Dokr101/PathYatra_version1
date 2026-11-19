@@ -1,0 +1,10 @@
+-- Itinerary.status becomes the ItineraryStatus enum (draft | upcoming | completed).
+--
+-- SQLite has no native enum type: Prisma stores enums as TEXT, so the column,
+-- its DEFAULT 'draft' and every existing row already satisfy the new type. The
+-- values in this database are lowercase ('draft', 'completed'), matching the
+-- enum members, so no data migration is needed. The constraint is enforced by
+-- the Prisma client from here on; see prisma/schema.prisma.
+--
+-- This migration is intentionally empty — it exists so the migration history
+-- matches the schema. (Prisma's own diff output for it is also empty.)

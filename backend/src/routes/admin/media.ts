@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { ipKeyGenerator, rateLimit } from 'express-rate-limit'
 import multer from 'multer'
 import { prisma } from '../../lib/prisma.js'
 import { ApiError, asyncHandler, parseBody } from '../../lib/api-error.js'
@@ -14,6 +15,7 @@ import {
   searchTerm,
   writeAudit,
 } from '../../lib/admin.js'
+import { getUserId } from '../../middleware/auth.js'
 
 export const adminMediaRouter = Router()
 
@@ -28,6 +30,43 @@ const upload = multer({
     }
     callback(null, true)
   },
+})
+
+/**
+ * Upload budget. The global limiter (300 requests / 15 min) would still allow
+ * 3000 images per window at ten files a request; these caps make an upload
+ * burst, or a stolen admin session, expensive to run against Cloudinary.
+ */
+const UPLOADS_PER_MINUTE = 5
+const UPLOADS_PER_DAY = 50
+
+const uploadLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: UPLOADS_PER_MINUTE,
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Per admin, not per IP: two admins behind one office NAT keep their own budget.
+  keyGenerator: (req) => (req.userId ? `admin:${req.userId}` : ipKeyGenerator(req.ip ?? '')),
+  message: { error: 'Upload rate limit reached' },
+})
+
+/**
+ * 24-hour cap counted from the audit trail, so it survives a restart and is
+ * visible in the admin log rather than held in memory.
+ */
+const dailyUploadCap = asyncHandler(async (req, res, next) => {
+  const adminId = getUserId(req)
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
+  const used = await prisma.auditLog.count({
+    where: { adminId, action: 'media.upload', createdAt: { gte: since } },
+  })
+  if (used >= UPLOADS_PER_DAY) {
+    throw new ApiError(
+      429,
+      `Daily upload limit reached (${UPLOADS_PER_DAY} uploads per 24 hours). Try again later.`,
+    )
+  }
+  next()
 })
 
 const imageInclude = {
@@ -71,6 +110,9 @@ adminMediaRouter.get(
 
 adminMediaRouter.post(
   '/upload',
+  // Both caps run before multer, so a refused upload never buffers its files.
+  uploadLimiter,
+  dailyUploadCap,
   upload.array('images', 10),
   asyncHandler(async (req, res) => {
     const files = (req.files as Express.Multer.File[] | undefined) ?? []
@@ -105,7 +147,7 @@ adminMediaRouter.post(
 
       const result = await uploadImage(
         file.buffer,
-        destinationId ? 'pathyatra/destinations' : 'pathyatra/library',
+        destinationId ? 'travel-destinations' : 'pathyatra/library',
         { altText: altText ?? undefined },
       )
 
@@ -134,7 +176,7 @@ adminMediaRouter.post(
     }
 
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: 'media.upload',
       entityType: 'DestinationImage',
       entityId: created[0]?.id,
@@ -197,7 +239,7 @@ adminMediaRouter.post(
     ])
 
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: 'media.cover',
       entityType: 'DestinationImage',
       entityId: id,
@@ -230,7 +272,7 @@ adminMediaRouter.delete(
     })
 
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: 'media.delete',
       entityType: 'DestinationImage',
       entityId: id,

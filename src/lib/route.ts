@@ -1,4 +1,5 @@
 import type { Destination, EnRouteStop, Origin, RouteOption, RouteType, Transport } from '../types'
+import { hasLocation } from './format'
 
 const EARTH_RADIUS_KM = 6371
 
@@ -47,6 +48,10 @@ const HIGHWAYS: Record<string, string> = {
 }
 
 export function roadDistanceKm(origin: Origin, destination: Destination): number {
+  // Without coordinates there is no distance to measure. Callers that show route
+  // figures check hasLocation() first, so this returns the distance floor rather
+  // than a number derived from an imaginary position in the Gulf of Guinea.
+  if (!hasLocation(destination)) return 0
   const straight = haversineKm(origin.lat, origin.lng, destination.lat, destination.lng)
   const altitude = destination.altitude ?? 500
   const terrainFactor = altitude > 3000 ? 1.55 : altitude > 1200 ? 1.45 : 1.3

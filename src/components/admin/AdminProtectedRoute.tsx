@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom'
 import { Skeleton } from '../ui'
 
 /**
- * Waits for the stored token to be checked against /auth/me, then only lets an
+ * Waits for the session cookie to be checked against /auth/me, then only lets an
  * active ADMIN or SUPER_ADMIN through. Public users are redirected to the
  * separate admin sign-in screen.
  */

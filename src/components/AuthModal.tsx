@@ -12,22 +12,11 @@ import {
 } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { generateStrongPassword } from '../lib/password'
+import { safeInternalPath } from '../lib/safePath'
 import { cx } from '../lib/format'
 import logo from '../assets/logo.png'
 import { Modal } from './ui'
 import { PasswordRequirements } from './PasswordRequirements'
-
-function safeInternalPath(next: string | undefined): string | undefined {
-  if (!next?.startsWith('/') || next.startsWith('//') || next.includes('\\')) return undefined
-
-  try {
-    const url = new URL(next, window.location.origin)
-    if (url.origin !== window.location.origin) return undefined
-    return `${url.pathname}${url.search}${url.hash}`
-  } catch {
-    return undefined
-  }
-}
 
 export function AuthModal() {
   const { authRequest, closeAuth, signIn, signUp, notify } = useApp()
@@ -245,7 +234,8 @@ export function AuthModal() {
             </div>
           ) : null}
 
-          <form onSubmit={submit} className="auth-form space-y-3.5" noValidate>
+          {/* Keyed so switching tabs crossfades the form instead of snapping. */}
+          <form key={mode} onSubmit={submit} className="auth-form tab-fade space-y-3.5" noValidate>
             {mode === 'signup' ? (
               <div className="block">
                 <label htmlFor="auth-full-name" className="field-label">Full name</label>
@@ -406,7 +396,7 @@ export function AuthModal() {
             </button>
           </form>
 
-          <div className="auth-trust mt-5 flex items-center justify-center gap-2 border-t border-white/70 pt-4 text-[10px] text-ink-mute sm:text-[11px]">
+          <div className="auth-trust mt-5 flex items-center justify-center gap-2 border-t border-white/70 pt-4 text-[11px] text-ink-mute sm:text-[11px]">
             <ShieldCheck size={14} className="shrink-0 text-pine-3" />
             <span>Passwords are securely hashed by the PathYatra API.</span>
           </div>

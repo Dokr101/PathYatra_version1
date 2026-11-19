@@ -41,11 +41,17 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Lint frontend and backend source
+        run: npm run lint
+
       - name: Typecheck frontend
         run: npm run typecheck
 
       - name: Build frontend
         run: npm run build
+
+      - name: Test frontend
+        run: npm test
 
       - name: Install backend dependencies
         run: npm ci
@@ -58,6 +64,40 @@ jobs:
       - name: Test backend
         run: npm test
         working-directory: backend
+        env:
+          # CI has no backend/.env; these satisfy the boot-time guards in
+          # src/lib/env.ts. Tests never reach a real database.
+          JWT_SECRET: ci-only-secret-0123456789abcdef0123456789abcdef
+          DATABASE_URL: file:./ci-test.db
+
+  lockfile:
+    name: Lockfile integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 20
+
+      # --ignore-scripts: a dependency's lifecycle scripts must not run in the
+      # job whose only purpose is to prove the lockfile is complete. `npm ci`
+      # itself fails when package.json and the lock divergence.
+      - name: Install frontend strictly from the lockfile
+        run: npm ci --ignore-scripts
+
+      - name: Frontend lockfile must not change
+        run: git diff --exit-code -- package-lock.json
+
+      - name: Install backend strictly from the lockfile
+        run: npm ci --ignore-scripts
+        working-directory: backend
+
+      - name: Backend lockfile must not change
+        run: git diff --exit-code -- backend/package-lock.json
 
   npm-audit:
     name: Dependency audit (high and above)

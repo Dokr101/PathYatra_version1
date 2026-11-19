@@ -11,6 +11,7 @@ import {
   uniqueSlug,
   writeAudit,
 } from '../../lib/admin.js'
+import { getUserId } from '../../middleware/auth.js'
 
 export const adminItinerariesRouter = Router()
 
@@ -72,7 +73,7 @@ adminItinerariesRouter.post(
       include,
     })
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: 'template.create',
       entityType: 'ItineraryTemplate',
       entityId: template.id,
@@ -125,7 +126,7 @@ adminItinerariesRouter.patch(
       include,
     })
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: data.status === 'ARCHIVED' ? 'template.archive' : 'template.update',
       entityType: 'ItineraryTemplate',
       entityId: id,
@@ -175,7 +176,7 @@ adminItinerariesRouter.put(
 
     const template = await prisma.itineraryTemplate.findUnique({ where: { id }, include })
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: 'template.days',
       entityType: 'ItineraryTemplate',
       entityId: id,
@@ -193,7 +194,7 @@ adminItinerariesRouter.delete(
     if (!existing) throw new ApiError(404, 'Itinerary template not found')
     await prisma.itineraryTemplate.delete({ where: { id } })
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: 'template.delete',
       entityType: 'ItineraryTemplate',
       entityId: id,

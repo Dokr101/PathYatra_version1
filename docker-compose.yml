@@ -1,0 +1,62 @@
+# Local full-stack run: one container for the API, one short-lived container that
+# applies migrations to the shared SQLite volume before it starts.
+#
+#   docker compose --env-file backend/.env up --build
+#   docker compose run --rm migrate npx tsx prisma/seed.ts        # demo content
+#   docker compose run --rm migrate npx tsx prisma/seed-admin.ts  # bootstrap admin
+#
+# The site bundle is inside the image at /app/dist; serve it with nginx or any
+# static host, or point a dev Vite server at http://localhost:3001 for /api.
+name: pathyatra
+
+services:
+  migrate:
+    build:
+      context: .
+      # Tools stage: keeps the Prisma CLI and tsx for migrate/seed, offline.
+      target: api-tools
+    # Same uid as the runtime image so both can write the shared volume.
+    user: node
+    command: ["npx", "prisma", "migrate", "deploy"]
+    environment:
+      DATABASE_URL: file:/data/pathyatra.db
+    volumes:
+      - pathyatra-data:/data
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      target: runtime
+      args:
+        # Baked into the site bundle at build time.
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      DATABASE_URL: file:/data/pathyatra.db
+      # Pass these with --env-file backend/.env or export them in the shell.
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET (32+ characters) or use --env-file backend/.env}
+      ADMIN_SEED_EMAIL: ${ADMIN_SEED_EMAIL:-admin@yatrapath.com}
+      ADMIN_SEED_PASSWORD: ${ADMIN_SEED_PASSWORD:?set ADMIN_SEED_PASSWORD (12+ characters) or use --env-file backend/.env}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+      # 0 when the API is reached directly; 1 behind a single nginx/ALB hop.
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-0}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_RELEASE: ${SENTRY_RELEASE:-}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+      CLOUDINARY_FOLDER: ${CLOUDINARY_FOLDER:-pathyatra}
+    ports:
+      - "3001:3001"
+    volumes:
+      - pathyatra-data:/data
+    restart: unless-stopped
+
+volumes:
+  pathyatra-data:

@@ -1,4 +1,5 @@
 import type { Accommodation, CostBreakdown, CostLine, Destination, RouteOption } from '../types'
+import { PRICING_BASELINE_COST_PER_DAY } from './constants'
 import { clamp } from './format'
 
 const NIGHTLY: Record<Accommodation, number> = { budget: 1200, mid: 3500, comfort: 9000 }
@@ -21,12 +22,16 @@ export function estimateNights(days: number): number {
 export function buildCostBreakdown(input: PricingInput): CostBreakdown {
   const { destination, days, travelers, accommodation, route, activitySpend, budget } = input
   const nights = estimateNights(days)
-  const scale = clamp(destination.costPerDay / 4800, 0.8, 1.9)
+  // An unpriced destination scales off the national baseline (scale = 1.0).
+  // The UI hides the estimate entirely in that case, so this is a neutral
+  // arithmetic fallback, not a figure anyone is shown.
+  const dailyCost = destination.costPerDay ?? PRICING_BASELINE_COST_PER_DAY
+  const scale = clamp(dailyCost / PRICING_BASELINE_COST_PER_DAY, 0.8, 1.9)
 
   const transportPerPerson = Math.round(route.costPerPerson * 2)
   const stayPerPerson = Math.round(nights * NIGHTLY[accommodation] * scale)
   const foodPerPerson = Math.round(days * FOOD[accommodation] * (0.65 + 0.35 * scale))
-  const activitiesPerPerson = Math.round(activitySpend + destination.costPerDay * 0.12 * days)
+  const activitiesPerPerson = Math.round(activitySpend + dailyCost * 0.12 * days)
   const permitsPerPerson = destination.permit?.cost ?? 0
 
   const lines: CostLine[] = [
@@ -133,11 +138,13 @@ export function savingTips(
   travelers: number,
   accommodation: Accommodation,
   route: RouteOption,
-  budget: number,
+  // Part of the public signature; the tips are derived from the breakdown.
+  _budget: number,
   breakdown: CostBreakdown,
 ): SavingTip[] {
   const tips: SavingTip[] = []
-  const scale = clamp(destination.costPerDay / 4800, 0.8, 1.9)
+  const dailyCost = destination.costPerDay ?? PRICING_BASELINE_COST_PER_DAY
+  const scale = clamp(dailyCost / PRICING_BASELINE_COST_PER_DAY, 0.8, 1.9)
 
   if (route.type !== 'budget') {
     const bus = Math.max(250, route.distanceKm * 2.4) * 2

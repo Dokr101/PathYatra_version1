@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { ArrowUpRight, Calculator, Compass, Map as MapIcon, Menu, X } from 'lucide-react'
+import { Calculator, Compass, Map as MapIcon, Menu, X } from 'lucide-react'
 import logoMark from '../assets/logo-mark.png'
 import { useApp } from '../context/AppContext'
 
@@ -43,7 +43,7 @@ export function LandingHeader({ solid = false }: { solid?: boolean }) {
 
   const accountClass = `inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-medium transition-colors duration-200 ${
     scrolled
-      ? 'bg-pine text-paper hover:bg-pine-2'
+      ? 'bg-accent text-white hover:bg-accent-strong'
       : 'border border-paper/30 bg-paper/12 text-paper backdrop-blur-sm hover:bg-paper/20'
   }`
 
@@ -109,7 +109,7 @@ export function LandingHeader({ solid = false }: { solid?: boolean }) {
           aria-expanded={menuOpen}
           aria-controls="landing-mobile-navigation"
           onClick={() => setMenuOpen((open) => !open)}
-          className={`inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors md:hidden ${
+          className={`inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors md:hidden ${
             scrolled
               ? 'text-ink hover:bg-paper-2'
               : 'text-paper hover:bg-paper/10'
@@ -125,7 +125,7 @@ export function LandingHeader({ solid = false }: { solid?: boolean }) {
             className={`absolute inset-x-0 top-full z-50 grid gap-1 rounded-b-2xl border px-3 py-3 shadow-lg md:hidden ${
               scrolled
                 ? 'border-line bg-paper text-ink'
-                : 'border-white/15 bg-[#172B32]/95 text-paper backdrop-blur-md'
+                : 'border-white/15 bg-ink/95 text-paper backdrop-blur-md'
             }`}
           >
             <Link to="/explore" onClick={() => setMenuOpen(false)} className={navClass}>

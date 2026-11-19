@@ -1,0 +1,15 @@
+node_modules
+backend/node_modules
+dist
+backend/dist
+coverage
+backend/coverage
+package-lock.json
+backend/package-lock.json
+# Generated and historical SQL: formatting it would rewrite applied migrations.
+backend/prisma/migrations
+backend/prisma/backups
+backend/prisma/*.db
+backend/prisma/dev.db-journal
+src/assets
+public

@@ -1,15 +1,54 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowUpRight, Compass, Filter, Heart, RotateCcw, Search, Sparkles, X } from 'lucide-react'
+import { ArrowUpRight, Check, Compass, Filter, Heart, RotateCcw, Search, Sparkles, X, type LucideIcon } from 'lucide-react'
 import type { Category, Difficulty } from '../types'
-import { CATEGORIES, MONTHS } from '../data/taxonomy'
-import { getDestination } from '../data/destinations'
+import { CATEGORIES } from '../data/taxonomy'
+import { DESTINATIONS, getDestination } from '../data/destinations'
 import { usePublicDestinations } from '../lib/publicDestinations'
 import { useApp } from '../context/AppContext'
 import { DestinationCard, MiniDestination } from '../components/DestinationCard'
+import { DestinationCardSkeleton } from '../components/CardSkeletons'
+import { staggerDelay, useDelayedFlag } from '../lib/motion'
 import { Pill, Skeleton } from '../components/ui'
 import { cx } from '../lib/format'
 import { getRecent } from '../lib/recent'
+
+/** Multi-select toggle: a checkbox square makes "several can be on" obvious. */
+function ToggleChip({
+  active,
+  onClick,
+  label,
+  icon: Icon,
+}: {
+  active: boolean
+  onClick: () => void
+  label: string
+  icon: LucideIcon
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cx(
+        'flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-medium transition',
+        active ? 'border-pine bg-pine/10 text-ink' : 'border-line text-ink-soft hover:border-pine-3',
+      )}
+    >
+      <span
+        aria-hidden="true"
+        className={cx(
+          'flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[4px] border transition',
+          active ? 'border-pine bg-pine text-paper' : 'border-[#8f846d] bg-white/70',
+        )}
+      >
+        {active ? <Check size={9} strokeWidth={3} /> : null}
+      </span>
+      <Icon size={11} />
+      {label}
+    </button>
+  )
+}
 
 type Sort = 'recommended' | 'cost' | 'duration'
 type Band = 'all' | 'low' | 'mid' | 'high'
@@ -38,6 +77,7 @@ export function Explore() {
   const { wishlist } = useApp()
   const { destinations, loading: destinationsLoading, error: destinationsError, retry } = usePublicDestinations()
   const month = new Date().getMonth() + 1
+  const monthName = new Date().toLocaleString('en', { month: 'long' })
   const [slowLoading, setSlowLoading] = useState(false)
 
   const [query, setQuery] = useState(params.get('q') ?? '')
@@ -50,6 +90,8 @@ export function Explore() {
   const [durationBand, setDurationBand] = useState<DurationBand>('all')
   const [sort, setSort] = useState<Sort>('recommended')
   const [showFilters, setShowFilters] = useState(false)
+  /** Only while the live catalog is still the bundled fallback, and only if it is slow. */
+  const showCatalogSkeleton = useDelayedFlag(destinationsLoading && destinations === DESTINATIONS, 180)
 
   useEffect(() => {
     if (!destinationsLoading) {
@@ -93,18 +135,33 @@ export function Explore() {
     if (gemsOnly) list = list.filter((d) => d.hiddenGem)
     if (savedOnly) list = list.filter((d) => wishlist.includes(d.slug))
     if (difficulty !== 'all') list = list.filter((d) => d.difficulty === difficulty)
+    // A destination with no stated cost or duration matches neither band: it has
+    // no place in "under Rs. 4,500" or "2–3 days" until an admin fills it in.
     if (budgetBand !== 'all') {
-      list = list.filter((d) =>
-        budgetBand === 'low' ? d.costPerDay < 4500 : budgetBand === 'mid' ? d.costPerDay < 6500 : d.costPerDay >= 6500,
-      )
+      list = list.filter((d) => {
+        if (d.costPerDay === undefined) return false
+        return budgetBand === 'low'
+          ? d.costPerDay < 4500
+          : budgetBand === 'mid'
+            ? d.costPerDay < 6500
+            : d.costPerDay >= 6500
+      })
     }
     if (durationBand !== 'all') {
-      list = list.filter((d) =>
-        durationBand === 'short' ? d.maxDays <= 3 : durationBand === 'medium' ? d.minDays <= 6 && d.maxDays >= 3 : d.maxDays >= 7,
-      )
+      list = list.filter((d) => {
+        if (d.minDays === undefined || d.maxDays === undefined) return false
+        return durationBand === 'short'
+          ? d.maxDays <= 3
+          : durationBand === 'medium'
+            ? d.minDays <= 6 && d.maxDays >= 3
+            : d.maxDays >= 7
+      })
     }
-    if (sort === 'cost') list = [...list].sort((a, b) => a.costPerDay - b.costPerDay)
-    if (sort === 'duration') list = [...list].sort((a, b) => a.minDays - b.minDays)
+    // Unpriced destinations sort last rather than first as a fake zero.
+    if (sort === 'cost')
+      list = [...list].sort((a, b) => (a.costPerDay ?? Infinity) - (b.costPerDay ?? Infinity))
+    if (sort === 'duration')
+      list = [...list].sort((a, b) => (a.minDays ?? Infinity) - (b.minDays ?? Infinity))
     return list
   }, [budgetBand, category, destinations, difficulty, durationBand, gemsOnly, month, query, savedOnly, seasonOnly, sort, wishlist])
 
@@ -193,7 +250,7 @@ export function Explore() {
                   : 'Checking for the latest destination details. The local guide below is ready in the meantime.'}
               </p>
             </div>
-            <span className="hidden text-[10px] font-medium uppercase tracking-wide text-ink-mute sm:block">
+            <span className="hidden text-[11px] font-medium uppercase tracking-wide text-ink-mute sm:block">
               {slowLoading ? 'Still loading' : 'Connecting'}
             </span>
           </div>
@@ -226,14 +283,14 @@ export function Explore() {
       {/* Search + category rail */}
       <div className="mt-8 rounded-2xl border border-line bg-white/55 p-3">
         <div className="flex flex-col gap-2 sm:flex-row">
-          <label className="flex flex-1 items-center gap-2 rounded-xl border border-line bg-paper px-3">
+          <label className="flex flex-1 items-center gap-2 rounded-xl border border-field-line bg-paper px-3 focus-within:border-pine-3 focus-within:ring-2 focus-within:ring-pine/15">
             <Search size={16} className="text-ink-mute" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search destinations, districts, activities…"
               aria-label="Search destinations"
-              className="w-full bg-transparent py-2.5 text-sm outline-none placeholder:text-ink-mute"
+              className="w-full bg-transparent py-2.5 text-sm text-ink outline-none placeholder:text-ink-mute"
             />
             {query ? (
               <button type="button" onClick={() => setQuery('')} aria-label="Clear search" className="text-ink-mute">
@@ -253,7 +310,7 @@ export function Explore() {
               value={sort}
               onChange={(event) => setSort(event.target.value as Sort)}
               aria-label="Sort destinations"
-              className="field max-w-[170px] py-2.5"
+              className="field min-w-[168px] max-w-[190px] py-2.5"
             >
               <option value="recommended">Recommended</option>
               <option value="cost">Lowest cost</option>
@@ -262,61 +319,67 @@ export function Explore() {
           </div>
         </div>
 
-        <div className="no-scrollbar mt-3 flex gap-1.5 overflow-x-auto pb-0.5">
-          <button
-            type="button"
-            onClick={() => setCategory('all')}
-            className={cx(
-              'shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-medium transition',
-              category === 'all' ? 'border-pine bg-pine text-paper' : 'border-line text-ink-soft hover:border-pine-3',
-            )}
-          >
-            All of Nepal
-          </button>
-          {CATEGORIES.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setCategory(category === item.id ? 'all' : item.id)}
-              className={cx(
-                'shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-medium transition',
-                category === item.id ? 'border-pine bg-pine text-paper' : 'border-line text-ink-soft hover:border-pine-3',
-              )}
+        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-5">
+          {/* Category: one at a time. */}
+          <div className="min-w-0">
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">Category</p>
+            <div className="no-scrollbar flex gap-1.5 overflow-x-auto pb-0.5" role="group" aria-label="Category">
+              <button
+                type="button"
+                onClick={() => setCategory('all')}
+                aria-pressed={category === 'all'}
+                className={cx(
+                  'shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-medium transition',
+                  category === 'all' ? 'border-pine bg-pine text-paper' : 'border-line text-ink-soft hover:border-pine-3',
+                )}
+              >
+                All
+              </button>
+              {CATEGORIES.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setCategory(category === item.id ? 'all' : item.id)}
+                  aria-pressed={category === item.id}
+                  className={cx(
+                    'shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-medium transition',
+                    category === item.id ? 'border-pine bg-pine text-paper' : 'border-line text-ink-soft hover:border-pine-3',
+                  )}
+                >
+                  {item.short}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Filters: independent toggles that combine. */}
+          <div className="min-w-0 sm:border-l sm:border-line sm:pl-5">
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">Filters</p>
+            <div
+              className="no-scrollbar flex gap-1.5 overflow-x-auto pb-0.5"
+              role="group"
+              aria-label="Filters, several can be on"
             >
-              {item.short}
-            </button>
-          ))}
-          <span className="mx-1 w-px shrink-0 bg-line" />
-          <button
-            type="button"
-            onClick={() => setGemsOnly((value) => !value)}
-            className={cx(
-              'shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-medium transition',
-              gemsOnly ? 'border-marigold bg-marigold/20 text-ink' : 'border-line text-ink-soft hover:border-marigold',
-            )}
-          >
-            <Sparkles size={11} className="mr-1 inline" /> Hidden gems
-          </button>
-          <button
-            type="button"
-            onClick={() => setSeasonOnly((value) => !value)}
-            className={cx(
-              'shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-medium transition',
-              seasonOnly ? 'border-pine bg-pine text-paper' : 'border-line text-ink-soft hover:border-pine-3',
-            )}
-          >
-            In season · {MONTHS[month - 1]}
-          </button>
-          <button
-            type="button"
-            onClick={() => setSavedOnly((value) => !value)}
-            className={cx(
-              'shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-medium transition',
-              savedOnly ? 'border-saffron bg-saffron-soft text-clay' : 'border-line text-ink-soft hover:border-saffron',
-            )}
-          >
-            <Heart size={11} className="mr-1 inline" /> My wishlist
-          </button>
+              <ToggleChip
+                active={gemsOnly}
+                onClick={() => setGemsOnly((value) => !value)}
+                label="Hidden gems"
+                icon={Sparkles}
+              />
+              <ToggleChip
+                active={seasonOnly}
+                onClick={() => setSeasonOnly((value) => !value)}
+                label={`In season · ${monthName}`}
+                icon={Compass}
+              />
+              <ToggleChip
+                active={savedOnly}
+                onClick={() => setSavedOnly((value) => !value)}
+                label="My wishlist"
+                icon={Heart}
+              />
+            </div>
+          </div>
         </div>
 
         {showFilters ? (
@@ -370,7 +433,7 @@ export function Explore() {
       {recent.length > 0 && !query && activeFilters === 0 ? (
         <section className="mt-8">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-mute">Recently viewed</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">Recently viewed</p>
             <Link to="/mero-yatra?tab=favorites" className="text-[11px] text-ink-mute hover:text-pine">
               Wishlist
             </Link>
@@ -388,7 +451,7 @@ export function Explore() {
           <span className="font-semibold text-ink">{results.length}</span>{' '}
           {results.length === 1 ? 'destination' : 'destinations'}
           {query ? ` for “${query}”` : ''}
-          {seasonOnly ? ` in season during ${MONTHS[month - 1]}` : ''}
+          {seasonOnly ? ` in season during ${monthName}` : ''}
         </p>
         {activeFilters > 0 ? (
           <button type="button" onClick={reset} className="text-[11px] text-clay hover:underline">
@@ -441,10 +504,20 @@ export function Explore() {
             {query ? 'Clear search and filters' : 'Reset filters'}
           </button>
         </div>
+      ) : showCatalogSkeleton ? (
+        <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
+          {[0, 1, 2, 3, 4, 5].map((item) => (
+            <DestinationCardSkeleton key={item} />
+          ))}
+        </div>
       ) : (
         <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {results.map((destination) => (
-            <DestinationCard key={destination.slug} destination={destination} />
+          {results.map((destination, index) => (
+            <DestinationCard
+              key={destination.slug}
+              destination={destination}
+              enterDelay={staggerDelay(index)}
+            />
           ))}
         </div>
       )}

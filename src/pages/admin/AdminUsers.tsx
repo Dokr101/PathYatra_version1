@@ -20,7 +20,6 @@ import {
   SearchBox,
   Select,
   StatusBadge,
-  UpdatedCell,
 } from '../../components/admin/AdminUI'
 import { formatDate } from '../../lib/adminFormat'
 
@@ -45,14 +44,14 @@ export function AdminUsers() {
   useEffect(() => setPage(1), [debouncedQuery, role, active])
 
   const { data, loading, error, reload } = usePagedList(
-    () =>
+    (signal) =>
       api.users.list({
         q: debouncedQuery,
         role,
         isActive: active,
         page,
         pageSize: 20,
-      }),
+      }, signal),
     [debouncedQuery, role, active, page],
   )
 
@@ -140,7 +139,7 @@ export function AdminUsers() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[940px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-line bg-paper-2/50 text-[10px] uppercase tracking-[0.12em] text-ink-mute">
+                  <tr className="border-b border-line bg-paper-2/50 text-[11px] uppercase tracking-[0.08em] text-ink-mute">
                     <th className="px-4 py-3 font-semibold">Account</th>
                     <th className="px-3 py-3 font-semibold">Role</th>
                     <th className="px-3 py-3 font-semibold">Status</th>
@@ -158,7 +157,7 @@ export function AdminUsers() {
                           <p className="font-medium">
                             {account.fullName}
                             {isSelf ? (
-                              <span className="ml-2 rounded-full bg-paper-2 px-1.5 py-0.5 text-[9px] uppercase tracking-[0.1em] text-ink-mute">
+                              <span className="ml-2 rounded-full bg-paper-2 px-1.5 py-0.5 text-[11px] uppercase tracking-[0.08em] text-ink-mute">
                                 You
                               </span>
                             ) : null}
@@ -188,7 +187,7 @@ export function AdminUsers() {
                         <td className="px-3 py-3 text-xs text-ink-soft">{formatDate(account.createdAt)}</td>
                         <td className="px-3 py-3 text-[11px] text-ink-soft">
                           {account._count.itineraries} trips · {account._count.reviews} reviews
-                          <span className="block text-[10px] text-ink-mute">
+                          <span className="block text-[11px] text-ink-mute">
                             {account._count.favorites} saved destinations
                           </span>
                         </td>

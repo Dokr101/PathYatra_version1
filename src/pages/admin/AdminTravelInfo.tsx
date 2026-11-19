@@ -33,6 +33,7 @@ import {
   UpdatedCell,
 } from '../../components/admin/AdminUI'
 import { formatDate, inputDate } from '../../lib/adminFormat'
+import { safeHttpUrl } from '../../lib/format'
 
 interface InfoForm {
   destinationId: string
@@ -102,20 +103,18 @@ export function AdminTravelInfo() {
       .list({ pageSize: 100, sort: 'name', order: 'asc' })
       .then((result) => setDestinations(result.items))
       .catch(() => undefined)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [api])
 
   useEffect(() => {
     const next = new URLSearchParams()
     if (destinationId) next.set('destinationId', destinationId)
     setParams(next, { replace: true })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [destinationId])
+  }, [destinationId, setParams])
 
   useEffect(() => setPage(1), [debouncedQuery, destinationId, status, statusLabel])
 
   const { data, loading, error, reload } = usePagedList(
-    () =>
+    (signal) =>
       api.travelInfo.list({
         q: debouncedQuery,
         destinationId,
@@ -123,7 +122,7 @@ export function AdminTravelInfo() {
         statusLabel,
         page,
         pageSize: 20,
-      }),
+      }, signal),
     [debouncedQuery, destinationId, status, statusLabel, page],
   )
 
@@ -257,7 +256,7 @@ export function AdminTravelInfo() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[880px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-line bg-paper-2/50 text-[10px] uppercase tracking-[0.12em] text-ink-mute">
+                  <tr className="border-b border-line bg-paper-2/50 text-[11px] uppercase tracking-[0.08em] text-ink-mute">
                     <th className="px-4 py-3 font-semibold">Title</th>
                     <th className="px-3 py-3 font-semibold">Destination</th>
                     <th className="px-3 py-3 font-semibold">Label</th>
@@ -269,75 +268,78 @@ export function AdminTravelInfo() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
-                  {data.items.map((info) => (
-                    <tr key={info.id} className="hover:bg-paper-2/30">
-                      <td className="px-4 py-3">
-                        <p className="font-medium">{info.title}</p>
-                        {info.category ? (
-                          <p className="text-[11px] text-ink-mute">{info.category}</p>
-                        ) : null}
-                      </td>
-                      <td className="px-3 py-3">
-                        <Link
-                          to={`/admin/destinations/${info.destinationId}/edit`}
-                          className="text-xs text-pine hover:underline"
-                        >
-                          {info.destination.name}
-                        </Link>
-                      </td>
-                      <td className="px-3 py-3">
-                        <StatusBadge status={info.statusLabel} />
-                      </td>
-                      <td className="px-3 py-3 text-xs text-ink-soft">
-                        {info.sourceUrl ? (
-                          <a
-                            href={info.sourceUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-pine hover:underline"
+                  {data.items.map((info) => {
+                    const sourceUrl = safeHttpUrl(info.sourceUrl)
+                    return (
+                      <tr key={info.id} className="hover:bg-paper-2/30">
+                        <td className="px-4 py-3">
+                          <p className="font-medium">{info.title}</p>
+                          {info.category ? (
+                            <p className="text-[11px] text-ink-mute">{info.category}</p>
+                          ) : null}
+                        </td>
+                        <td className="px-3 py-3">
+                          <Link
+                            to={`/admin/destinations/${info.destinationId}/edit`}
+                            className="text-xs text-pine hover:underline"
                           >
-                            {info.sourceName || 'Source'}
-                          </a>
-                        ) : (
-                          info.sourceName || '—'
-                        )}
-                      </td>
-                      <td className="px-3 py-3 text-xs text-ink-soft">
-                        {formatDate(info.lastVerifiedAt)}
-                        {info.validUntil ? (
-                          <span className="block text-[10px] text-ink-mute">
-                            valid to {formatDate(info.validUntil)}
-                          </span>
-                        ) : null}
-                      </td>
-                      <td className="px-3 py-3">
-                        <StatusBadge status={info.status} />
-                      </td>
-                      <td className="px-3 py-3">
-                        <UpdatedCell date={info.updatedAt} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => openEdit(info)}
-                            aria-label={`Edit ${info.title}`}
-                            className="rounded-full border border-line bg-[#fffdf8] p-1.5 text-ink-soft hover:bg-paper-2"
-                          >
-                            <Pencil size={12} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeleting(info)}
-                            aria-label={`Delete ${info.title}`}
-                            className="rounded-full border border-line bg-[#fffdf8] p-1.5 text-clay hover:bg-[#f7e2dc]"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            {info.destination.name}
+                          </Link>
+                        </td>
+                        <td className="px-3 py-3">
+                          <StatusBadge status={info.statusLabel} />
+                        </td>
+                        <td className="px-3 py-3 text-xs text-ink-soft">
+                          {sourceUrl ? (
+                            <a
+                              href={sourceUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-pine hover:underline"
+                            >
+                              {info.sourceName || 'Source'}
+                            </a>
+                          ) : (
+                            info.sourceName || '—'
+                          )}
+                        </td>
+                        <td className="px-3 py-3 text-xs text-ink-soft">
+                          {formatDate(info.lastVerifiedAt)}
+                          {info.validUntil ? (
+                            <span className="block text-[11px] text-ink-mute">
+                              valid to {formatDate(info.validUntil)}
+                            </span>
+                          ) : null}
+                        </td>
+                        <td className="px-3 py-3">
+                          <StatusBadge status={info.status} />
+                        </td>
+                        <td className="px-3 py-3">
+                          <UpdatedCell date={info.updatedAt} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => openEdit(info)}
+                              aria-label={`Edit ${info.title}`}
+                              className="rounded-full border border-line bg-[#fffdf8] p-1.5 text-ink-soft hover:bg-paper-2"
+                            >
+                              <Pencil size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeleting(info)}
+                              aria-label={`Delete ${info.title}`}
+                              className="rounded-full border border-line bg-[#fffdf8] p-1.5 text-clay hover:bg-[#f7e2dc]"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

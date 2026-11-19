@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ArrowDown, ArrowUp, FolderTree, Pencil, Plus, Trash2 } from 'lucide-react'
 import type { AdminCategory } from '../../lib/api'
 import { apiErrorMessage } from '../../lib/api'
@@ -47,7 +47,7 @@ export function AdminCategories() {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState<AdminCategory | null>(null)
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true)
     setError(null)
     api.categories
@@ -55,12 +55,11 @@ export function AdminCategories() {
       .then((result) => setItems(result.items))
       .catch((reason: unknown) => setError(apiErrorMessage(reason)))
       .finally(() => setLoading(false))
-  }
+  }, [api])
 
   useEffect(() => {
     load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [load])
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase()

@@ -1,25 +1,38 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Layers, Scale, X } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { CATEGORY_MAP, getDestination } from '../data/destinations'
-import { monthsLabel, npr } from '../lib/format'
+import { costPerDayLabel, monthsLabel, npr, stayLabel } from '../lib/format'
 import { Modal, Pill } from './ui'
 import { DestinationImage } from './DestinationImage'
 
 export function CompareTray() {
   const { compare, toggleCompare, clearCompare } = useApp()
   const [open, setOpen] = useState(false)
+  const trayRef = useRef<HTMLDivElement>(null)
+  const [trayHeight, setTrayHeight] = useState(0)
   const selected = compare.map(getDestination).filter(Boolean)
   const items = selected as NonNullable<(typeof selected)[number]>[]
+
+  // Track the tray's height so page content can be kept clear of it.
+  useEffect(() => {
+    const node = trayRef.current
+    if (!node) return undefined
+    const measure = () => setTrayHeight(node.getBoundingClientRect().height)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [compare.length])
 
   if (!compare.length) return null
 
   return (
     <>
-      <div className="no-print fixed inset-x-0 bottom-4 z-40 flex justify-center px-4">
+      <div ref={trayRef} className="no-print fixed inset-x-0 bottom-4 z-40 flex justify-center px-4">
         <div className="flex w-full max-w-2xl flex-wrap items-center gap-3 rounded-2xl border border-pine/20 bg-pine px-4 py-3 text-paper shadow-lift">
-          <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-paper/70">
+          <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-paper/70">
             <Layers size={14} /> Compare
           </span>
           <div className="flex flex-1 flex-wrap gap-1.5">
@@ -54,6 +67,9 @@ export function CompareTray() {
         </div>
       </div>
 
+      {/* Spacer so the fixed tray never covers the bottom of the page. */}
+      <div aria-hidden="true" className="no-print" style={{ height: trayHeight ? trayHeight + 24 : 0 }} />
+
       <Modal
         open={open}
         onClose={() => setOpen(false)}
@@ -65,7 +81,7 @@ export function CompareTray() {
           <table className="w-full min-w-[560px] border-collapse text-left text-sm">
             <thead>
               <tr>
-                <th className="w-32 px-2 pb-3 align-bottom text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-mute">
+                <th className="w-32 px-2 pb-3 align-bottom text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
                   Destination
                 </th>
                 {items.map((destination) => (
@@ -85,10 +101,13 @@ export function CompareTray() {
                 { label: 'Best season', render: (d: (typeof items)[number]) => monthsLabel(d.bestMonths) },
                 {
                   label: 'Suggested duration',
-                  render: (d: (typeof items)[number]) => `${d.minDays}–${d.maxDays} days`,
+                  render: (d: (typeof items)[number]) => stayLabel(d.minDays, d.maxDays),
                 },
                 { label: 'Difficulty', render: (d: (typeof items)[number]) => d.difficulty },
-                { label: 'From, per day', render: (d: (typeof items)[number]) => npr(d.costPerDay) },
+                {
+                  label: 'From, per day',
+                  render: (d: (typeof items)[number]) => costPerDayLabel(d.costPerDay),
+                },
                 {
                   label: 'Permit',
                   render: (d: (typeof items)[number]) => (d.permit ? npr(d.permit.cost) : 'Not required'),
@@ -111,7 +130,7 @@ export function CompareTray() {
                 },
               ].map((row) => (
                 <tr key={row.label} className="border-t border-line align-top">
-                  <th className="px-2 py-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-mute">
+                  <th className="px-2 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
                     {row.label}
                   </th>
                   {items.map((destination) => (

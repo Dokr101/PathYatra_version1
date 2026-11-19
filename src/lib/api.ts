@@ -30,26 +30,41 @@ const API_BASE = import.meta.env.VITE_API_URL ?? '/api'
 interface RequestOptions {
   method?: string
   body?: unknown
-  token?: string | null
+  /** Cancels the request when a hook's effect is torn down. */
+  signal?: AbortSignal
+}
+
+/** True for an aborted fetch, so callers can stay quiet instead of showing an error. */
+export function isAbortError(error: unknown): boolean {
+  if (typeof DOMException !== 'undefined' && error instanceof DOMException) {
+    return error.name === 'AbortError'
+  }
+  return error instanceof Error && error.name === 'AbortError'
 }
 
 /**
  * Minimal fetch wrapper for the PathYatra API. In development Vite proxies
  * /api to the Express server on :3001.
+ *
+ * Authentication rides on the HttpOnly session cookie, which the browser sends
+ * automatically whenever `credentials: 'include'` is set — no token is ever held
+ * in JS, localStorage or a header, so an XSS cannot steal the session.
  */
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers: Record<string, string> = { accept: 'application/json' }
   if (options.body !== undefined) headers['content-type'] = 'application/json'
-  if (options.token) headers.authorization = `Bearer ${options.token}`
 
   let response: Response
   try {
     response = await fetch(`${API_BASE}${path}`, {
       method: options.method ?? 'GET',
       headers,
+      credentials: 'include',
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      signal: options.signal,
     })
-  } catch {
+  } catch (error) {
+    if (isAbortError(error)) throw error
     throw new ApiRequestError(0, 'Cannot reach the PathYatra server. Make sure the API is running.')
   }
 
@@ -72,15 +87,22 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 }
 
 /** Multipart upload (images only); the browser sets the boundary. */
-export async function apiUpload<T>(path: string, formData: FormData, token: string): Promise<T> {
+export async function apiUpload<T>(
+  path: string,
+  formData: FormData,
+  options: { signal?: AbortSignal } = {},
+): Promise<T> {
   let response: Response
   try {
     response = await fetch(`${API_BASE}${path}`, {
       method: 'POST',
-      headers: { accept: 'application/json', authorization: `Bearer ${token}` },
+      headers: { accept: 'application/json' },
+      credentials: 'include',
       body: formData,
+      signal: options.signal,
     })
-  } catch {
+  } catch (error) {
+    if (isAbortError(error)) throw error
     throw new ApiRequestError(0, 'Cannot reach the PathYatra server.')
   }
 
@@ -363,19 +385,20 @@ function queryString(params?: AdminParams): string {
 
 /**
  * Every admin endpoint lives here so pages never hand-build URLs or headers.
- * The API verifies the Bearer token and the ADMIN/SUPER_ADMIN role on each call.
+ * The API verifies the session cookie and the ADMIN/SUPER_ADMIN role on each call.
  */
-export function adminApi(token: string) {
+export function adminApi() {
   const request = <T>(path: string, options: RequestOptions = {}) =>
-    apiRequest<T>(`/admin${path}`, { ...options, token })
+    apiRequest<T>(`/admin${path}`, options)
 
   return {
     dashboard: () => request<AdminDashboard>('/dashboard'),
 
     destinations: {
-      list: (params?: AdminParams) =>
+      list: (params?: AdminParams, signal?: AbortSignal) =>
         request<Paginated<AdminDestination> & { provinces: string[] }>(
           `/destinations${queryString(params)}`,
+          { signal },
         ),
       get: (id: string) => request<AdminDestination>(`/destinations/${id}`),
       create: (body: unknown) =>
@@ -387,15 +410,15 @@ export function adminApi(token: string) {
     },
 
     media: {
-      list: (params?: AdminParams) =>
-        request<Paginated<AdminImage>>(`/media${queryString(params)}`),
+      list: (params?: AdminParams, signal?: AbortSignal) =>
+        request<Paginated<AdminImage>>(`/media${queryString(params)}`, { signal }),
       upload: (files: File[], meta: AdminParams) => {
         const form = new FormData()
         for (const file of files) form.append('images', file)
         for (const [key, value] of Object.entries(meta)) {
           if (value !== undefined && value !== null && value !== '') form.append(key, String(value))
         }
-        return apiUpload<{ items: AdminImage[] }>('/admin/media/upload', form, token)
+        return apiUpload<{ items: AdminImage[] }>('/admin/media/upload', form)
       },
       update: (id: string, body: unknown) =>
         request<AdminImage>(`/media/${id}`, { method: 'PATCH', body }),
@@ -407,8 +430,10 @@ export function adminApi(token: string) {
     },
 
     categories: {
-      list: (params?: AdminParams) =>
-        request<{ items: AdminCategory[]; total: number }>(`/categories${queryString(params)}`),
+      list: (params?: AdminParams, signal?: AbortSignal) =>
+        request<{ items: AdminCategory[]; total: number }>(`/categories${queryString(params)}`, {
+          signal,
+        }),
       create: (body: unknown) =>
         request<AdminCategory>('/categories', { method: 'POST', body }),
       update: (id: string, body: unknown) =>
@@ -420,8 +445,8 @@ export function adminApi(token: string) {
     },
 
     activities: {
-      list: (params?: AdminParams) =>
-        request<Paginated<AdminActivity>>(`/activities${queryString(params)}`),
+      list: (params?: AdminParams, signal?: AbortSignal) =>
+        request<Paginated<AdminActivity>>(`/activities${queryString(params)}`, { signal }),
       create: (body: unknown) =>
         request<AdminActivity>('/activities', { method: 'POST', body }),
       update: (id: string, body: unknown) =>
@@ -431,8 +456,8 @@ export function adminApi(token: string) {
     },
 
     places: {
-      list: (params?: AdminParams) =>
-        request<Paginated<AdminPlace>>(`/places${queryString(params)}`),
+      list: (params?: AdminParams, signal?: AbortSignal) =>
+        request<Paginated<AdminPlace>>(`/places${queryString(params)}`, { signal }),
       create: (body: unknown) => request<AdminPlace>('/places', { method: 'POST', body }),
       update: (id: string, body: unknown) =>
         request<AdminPlace>(`/places/${id}`, { method: 'PATCH', body }),
@@ -440,8 +465,8 @@ export function adminApi(token: string) {
     },
 
     itineraries: {
-      list: (params?: AdminParams) =>
-        request<Paginated<AdminTemplate>>(`/itineraries${queryString(params)}`),
+      list: (params?: AdminParams, signal?: AbortSignal) =>
+        request<Paginated<AdminTemplate>>(`/itineraries${queryString(params)}`, { signal }),
       get: (id: string) => request<AdminTemplate>(`/itineraries/${id}`),
       create: (body: unknown) =>
         request<AdminTemplate>('/itineraries', { method: 'POST', body }),
@@ -457,8 +482,8 @@ export function adminApi(token: string) {
     },
 
     travelInfo: {
-      list: (params?: AdminParams) =>
-        request<Paginated<AdminTravelInfo>>(`/travel-info${queryString(params)}`),
+      list: (params?: AdminParams, signal?: AbortSignal) =>
+        request<Paginated<AdminTravelInfo>>(`/travel-info${queryString(params)}`, { signal }),
       create: (body: unknown) =>
         request<AdminTravelInfo>('/travel-info', { method: 'POST', body }),
       update: (id: string, body: unknown) =>
@@ -468,9 +493,10 @@ export function adminApi(token: string) {
     },
 
     reviews: {
-      list: (params?: AdminParams) =>
+      list: (params?: AdminParams, signal?: AbortSignal) =>
         request<Paginated<AdminReview> & { statusCounts: Partial<Record<ReviewStatus, number>> }>(
           `/reviews${queryString(params)}`,
+          { signal },
         ),
       moderate: (id: string, status: 'APPROVED' | 'HIDDEN', moderationNote?: string) =>
         request<AdminReview>(`/reviews/${id}/moderate`, {
@@ -480,9 +506,10 @@ export function adminApi(token: string) {
     },
 
     users: {
-      list: (params?: AdminParams) =>
+      list: (params?: AdminParams, signal?: AbortSignal) =>
         request<Paginated<AdminUser> & { roleCounts: Partial<Record<UserRole, number>> }>(
           `/users${queryString(params)}`,
+          { signal },
         ),
       setStatus: (id: string, isActive: boolean) =>
         request<AdminUser>(`/users/${id}/status`, { method: 'PATCH', body: { isActive } }),
@@ -491,9 +518,10 @@ export function adminApi(token: string) {
     },
 
     auditLogs: {
-      list: (params?: AdminParams) =>
+      list: (params?: AdminParams, signal?: AbortSignal) =>
         request<Paginated<AdminAuditLog> & { entityTypes: string[] }>(
           `/audit-logs${queryString(params)}`,
+          { signal },
         ),
     },
 
@@ -509,9 +537,138 @@ export function adminApi(token: string) {
         currentPassword: string
         newPassword: string
         confirmPassword: string
-      }) => request<{ ok: true }>('/settings/password', { method: 'POST', body }),
+      }) => request<{ ok: true; token: string }>('/settings/password', { method: 'POST', body }),
     },
   }
 }
 
 export type AdminClient = ReturnType<typeof adminApi>
+
+/* ------------------------------------------------------------------ */
+/* Traveller itineraries                                                */
+/* ------------------------------------------------------------------ */
+
+export interface ApiItineraryStop {
+  id: string
+  timeSlot: string
+  title: string
+  description: string | null
+  estimatedCost: number | null
+  sortOrder: number
+}
+
+export interface ApiItineraryDay {
+  id: string
+  dayNumber: number
+  dayDate: string | null
+  notes: string | null
+  stops: ApiItineraryStop[]
+}
+
+export interface ApiItinerary {
+  id: string
+  destinationId: string
+  destination: { id: string; name: string; slug: string; imagePath: string | null; province: string | null; district: string | null }
+  title: string
+  startingPoint: string | null
+  startDate: string | null
+  endDate: string | null
+  numTravelers: number
+  totalBudget: number | null
+  status: string
+  clientPlan: string | null
+  createdAt: string
+  days: ApiItineraryDay[]
+}
+
+export interface ApiFavorite {
+  id: string
+  destinationId: string
+  destination: { id: string; name: string; slug: string; province: string | null; district: string | null }
+}
+
+/** The signed-in traveller's wishlist (/api/favorites). */
+export function favoritesApi() {
+  return {
+    list: (options: { signal?: AbortSignal } = {}) =>
+      apiRequest<ApiFavorite[]>('/favorites', { signal: options.signal }),
+    add: (destinationId: string, options: { signal?: AbortSignal } = {}) =>
+      apiRequest<ApiFavorite>(`/favorites/${destinationId}`, {
+        method: 'POST',
+        signal: options.signal,
+      }),
+    remove: (destinationId: string, options: { signal?: AbortSignal } = {}) =>
+      apiRequest<null>(`/favorites/${destinationId}`, {
+        method: 'DELETE',
+        signal: options.signal,
+      }),
+  }
+}
+
+export interface ApiReview {
+  id: string
+  rating: number
+  comment: string | null
+  travelDate: string | null
+  status: ReviewStatus
+  createdAt: string
+  user: { id: string; fullName: string }
+}
+
+/** Community reviews: public reads per destination, authenticated writes. */
+export function reviewsApi() {
+  return {
+    forDestination: (
+      slug: string,
+      options: { page?: number; pageSize?: number; signal?: AbortSignal } = {},
+    ) =>
+      apiRequest<{
+        destination: { id: string; name: string; slug: string }
+        reviewCount: number
+        averageRating: number | null
+        items: ApiReview[]
+        page: number
+        pageSize: number
+        totalPages: number
+      }>(`/destinations/${slug}/reviews${queryString({ page: options.page, pageSize: options.pageSize })}`, {
+        signal: options.signal,
+      }),
+    create: (
+      body: { destinationId: string; rating: number; comment?: string; travelDate?: string },
+      options: { signal?: AbortSignal } = {},
+    ) => apiRequest<ApiReview>('/reviews', { method: 'POST', body, signal: options.signal }),
+  }
+}
+
+/**
+ * Session endpoints for the signed-in traveller (/api/auth).
+ * `logout` revokes every token issued for the account, so it is worth calling
+ * even though the client drops its copy immediately afterwards.
+ */
+export function authApi() {
+  return {
+    logout: () => apiRequest<null>('/auth/logout', { method: 'POST' }),
+    /** Extends the session cookie; every older token for the account stops working. */
+    refresh: () => apiRequest<{ ok: true }>('/auth/refresh', { method: 'POST' }),
+    changePassword: (body: { currentPassword: string; newPassword: string; confirmPassword: string }) =>
+      apiRequest<{ ok: true }>('/auth/password/change', { method: 'POST', body }),
+  }
+}
+
+/** CRUD for the signed-in traveller's itineraries (/api/itineraries). */
+export function itinerariesApi() {
+  return {
+    list: (options: { signal?: AbortSignal } = {}) =>
+      apiRequest<ApiItinerary[]>('/itineraries', { signal: options.signal }),
+    create: (body: unknown, options: { signal?: AbortSignal } = {}) =>
+      apiRequest<ApiItinerary>('/itineraries', { method: 'POST', body, signal: options.signal }),
+    update: (id: string, body: unknown, options: { signal?: AbortSignal } = {}) =>
+      apiRequest<ApiItinerary>(`/itineraries/${id}`, {
+        method: 'PATCH',
+        body,
+        signal: options.signal,
+      }),
+    remove: (id: string, options: { signal?: AbortSignal } = {}) =>
+      apiRequest<null>(`/itineraries/${id}`, { method: 'DELETE', signal: options.signal }),
+  }
+}

@@ -1,24 +1,12 @@
-export function cx(...values: Array<string | false | null | undefined>): string {
-  return values.filter(Boolean).join(' ')
-}
+/**
+ * Admin-only formatting helpers. Everything that is not admin-specific —
+ * cx, formatDate, formatDateTime and npr — is defined once in ./format and
+ * re-exported here, so admin pages can keep a single import for their cells
+ * while the traveller and admin screens share one source of truth.
+ */
+import { formatDate } from './format'
 
-export function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return '—'
-  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
-export function formatDateTime(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return '—'
-  return `${date.toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })} · ${date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
-}
+export { cx, formatDate, formatDateTime, npr } from './format'
 
 /** Date-only value for <input type="date">. */
 export function inputDate(iso: string | null | undefined): string {
@@ -37,11 +25,6 @@ export function daysAgoInput(days: number): string {
   return inputDate(new Date(Date.now() - days * 86_400_000).toISOString())
 }
 
-export function currency(value: number | null | undefined): string {
-  if (value === null || value === undefined) return '—'
-  return `Rs. ${Math.round(value).toLocaleString('en-IN')}`
-}
-
 export function relativeTime(iso: string): string {
   const date = new Date(iso).getTime()
   const diff = Date.now() - date
@@ -54,8 +37,4 @@ export function relativeTime(iso: string): string {
   const days = Math.round(hours / 24)
   if (days < 30) return `${days}d ago`
   return formatDate(iso)
-}
-
-export function seconds(label: string): string {
-  return label
 }

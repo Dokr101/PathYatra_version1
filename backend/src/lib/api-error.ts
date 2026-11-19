@@ -2,6 +2,8 @@ import type { NextFunction, Request, RequestHandler, Response } from 'express'
 import { Prisma } from '@prisma/client'
 import multer from 'multer'
 import { z } from 'zod'
+import { logger } from './logger.js'
+import { captureException } from './observability.js'
 
 export class ApiError extends Error {
   status: number
@@ -41,11 +43,18 @@ export function asyncHandler(handler: AsyncHandler): RequestHandler {
   }
 }
 
+/**
+ * Nothing matched. The body is deliberately static: the requested URL is
+ * attacker-controlled, so echoing it back invites reflected XSS in anything
+ * that renders this JSON. The attempt goes to the log instead, where pino
+ * escapes it.
+ */
 export function notFoundHandler(req: Request, res: Response) {
-  res.status(404).json({ error: `Not found: ${req.method} ${req.originalUrl}` })
+  logger.info({ method: req.method, path: req.originalUrl }, 'unmatched route')
+  res.status(404).json({ error: 'Not found' })
 }
 
-export function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction) {
+export function errorHandler(err: unknown, req: Request, res: Response, _next: NextFunction) {
   if (err instanceof ApiError) {
     res.status(err.status).json({
       error: err.message,
@@ -81,6 +90,9 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
     }
   }
 
-  console.error('[api] unhandled error:', err)
+  // Sentry groups the failure; the log keeps the same error in the local stream
+  // (and in the container/host logs) with pino's redaction rules applied.
+  captureException(err, { method: req.method, path: req.originalUrl })
+  logger.error({ err }, 'unhandled error')
   res.status(500).json({ error: 'Internal server error' })
 }

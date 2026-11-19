@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Category, Difficulty, Destination, SceneKind } from '../types'
 import { DESTINATION_MAP, DESTINATIONS } from '../data/destinations'
-import { apiRequest } from './api'
+import { apiRequest, isAbortError } from './api'
 
 interface ApiTravelInfo {
   id: string
@@ -105,44 +105,29 @@ function hashSeed(slug: string): number {
  * Maps an API destination onto the richer local editorial shape. Content the
  * admin has filled in wins; otherwise the bundled editorial copy is kept, so
  * publishing a new destination still produces a complete page.
+ *
+ * A destination with no editorial entry and no admin input keeps its unknown
+ * fields undefined (cost, coordinates, suggested stay, season) rather than
+ * inheriting invented defaults — a price, a pin off the coast of Ghana or a
+ * made-up season is worse than an explicit gap in the UI.
  */
 export function toDestination(api: ApiDestination): Destination {
   const base = DESTINATION_MAP[api.slug]
   const category = categoryFromSlug(api.category.slug)
   const scene = base?.scene ?? { ...SCENES[category], seed: hashSeed(api.slug) }
-  const minDays = api.recommendedDurationDays ?? base?.minDays ?? 2
-  const maxDays = Math.max(minDays, base?.maxDays ?? minDays + 1)
+  const minDays = api.recommendedDurationDays ?? base?.minDays
+  const maxDays =
+    minDays === undefined ? base?.maxDays : Math.max(minDays, base?.maxDays ?? minDays + 1)
   const uploaded = api.images.find((image) => image.isCover)?.url ?? null
 
   return {
-    ...(base ?? {
-      hiddenGem: false,
-      enRoute: [],
-      nearby: [],
-      history: '',
-      permit: undefined,
-      altitude: undefined,
-      bestMonths: [3, 4, 5, 10, 11],
-      scene,
-      minDays,
-      maxDays,
-      costPerDay: api.costPerPersonPerDay ?? 4500,
-      difficulty: difficulty(api.difficultyLevel),
-      food: [],
-      essentials: [],
-      overview: [],
-      highlights: [],
-      activities: [],
-      tagline: '',
-      summary: '',
-      province: '',
-      district: '',
-      category,
-      name: api.name,
-      slug: api.slug,
-      lat: 0,
-      lng: 0,
-    }),
+    hiddenGem: base?.hiddenGem ?? false,
+    enRoute: base?.enRoute ?? [],
+    nearby: base?.nearby ?? [],
+    history: base?.history ?? '',
+    permit: base?.permit,
+    altitude: base?.altitude,
+    bestMonths: base?.bestMonths ?? [],
     name: api.name,
     slug: api.slug,
     province: api.province ?? base?.province ?? '',
@@ -162,9 +147,9 @@ export function toDestination(api: ApiDestination): Destination {
     difficulty: difficulty(api.difficultyLevel),
     minDays,
     maxDays,
-    costPerDay: api.costPerPersonPerDay ?? base?.costPerDay ?? 4500,
-    lat: api.latitude ?? base?.lat ?? 0,
-    lng: api.longitude ?? base?.lng ?? 0,
+    costPerDay: api.costPerPersonPerDay ?? base?.costPerDay,
+    lat: api.latitude ?? base?.lat,
+    lng: api.longitude ?? base?.lng,
     scene,
     uploadedCoverUrl: uploaded,
     fallbackImageUrl: api.imagePath || api.coverImageUrl,
@@ -181,24 +166,61 @@ export function toDestination(api: ApiDestination): Destination {
       statusLabel: info.statusLabel,
     })),
     places: api.places,
+    apiId: api.id,
+    reviewCount: api.reviewCount,
+    averageRating: api.averageRating,
   }
 }
+
+/** slug → server destination id, using the destination list the app already caches. */
+export async function publicDestinationIdMap(): Promise<Map<string, string>> {
+  const destinations = await fetchDestinations()
+  const map = new Map<string, string>()
+  for (const destination of destinations) {
+    if (destination.apiId) map.set(destination.slug, destination.apiId)
+  }
+  return map
+}
+
+/** One page as the API returns it; `pageSize` is capped at 100 server-side. */
+interface ApiDestinationPage {
+  items: ApiDestination[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
+}
+
+const CATALOGUE_PAGE_SIZE = 100
+/** The browse screen filters client-side, so it needs the catalogue in memory. */
+const MAX_CATALOGUE_PAGES = 5
 
 let cache: Destination[] | null = null
 let pending: Promise<Destination[]> | null = null
 
-async function fetchDestinations(): Promise<Destination[]> {
+async function fetchDestinations(signal?: AbortSignal): Promise<Destination[]> {
   if (cache) return cache
   if (!pending) {
-    pending = apiRequest<ApiDestination[]>('/destinations')
-      .then((items) => {
-        cache = items.map(toDestination)
-        return cache
-      })
-      .catch((error: unknown) => {
-        pending = null
-        throw error
-      })
+    pending = (async () => {
+      const first = await apiRequest<ApiDestinationPage>(
+        `/destinations?page=1&pageSize=${CATALOGUE_PAGE_SIZE}`,
+        { signal },
+      )
+      const items = [...first.items]
+      const lastPage = Math.min(first.totalPages, MAX_CATALOGUE_PAGES)
+      for (let page = 2; page <= lastPage; page += 1) {
+        const next = await apiRequest<ApiDestinationPage>(
+          `/destinations?page=${page}&pageSize=${CATALOGUE_PAGE_SIZE}`,
+          { signal },
+        )
+        items.push(...next.items)
+      }
+      cache = items.map(toDestination)
+      return cache
+    })().catch((error: unknown) => {
+      pending = null
+      throw error
+    })
   }
   return pending
 }
@@ -233,7 +255,8 @@ export function usePublicDestinations() {
       return
     }
     let active = true
-    fetchDestinations()
+    const controller = new AbortController()
+    fetchDestinations(controller.signal)
       .then((items) => {
         if (active) {
           setDestinations(items)
@@ -241,19 +264,19 @@ export function usePublicDestinations() {
         }
       })
       .catch((cause: unknown) => {
-        if (active) {
-          setError(
-            cause instanceof Error
-              ? cause.message
-              : 'The live destination service returned an unexpected response.',
-          )
-        }
+        if (!active || isAbortError(cause)) return
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : 'The live destination service returned an unexpected response.',
+        )
       })
       .finally(() => {
         if (active) setLoading(false)
       })
     return () => {
       active = false
+      controller.abort()
     }
   }, [requestNumber])
 

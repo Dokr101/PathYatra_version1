@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useApp } from '../context/AppContext'
-import { adminApi, apiErrorMessage, type Paginated } from './api'
+import { adminApi, apiErrorMessage, isAbortError, type Paginated } from './api'
 
+/** The admin client rides the same HttpOnly session cookie as the rest of the app. */
 export function useAdminApi() {
-  const { token } = useApp()
-  return useMemo(() => adminApi(token ?? ''), [token])
+  return useMemo(() => adminApi(), [])
 }
 
 export function useDebounced<T>(value: T, delay = 300): T {
@@ -22,7 +21,7 @@ export function useDebounced<T>(value: T, delay = 300): T {
  * mutation without losing the current filters.
  */
 export function usePagedList<T, P extends Paginated<T> = Paginated<T>>(
-  load: () => Promise<P>,
+  load: (signal: AbortSignal) => Promise<P>,
   deps: unknown[],
 ) {
   const [data, setData] = useState<P | null>(null)
@@ -31,27 +30,34 @@ export function usePagedList<T, P extends Paginated<T> = Paginated<T>>(
   const [tick, setTick] = useState(0)
   const loader = useRef(load)
   loader.current = load
+  // Callers pass a fresh array every render, so the effect depends on a key made
+  // from the values themselves: new filters reload, a re-render does not.
+  const key = deps.map((value) => String(value)).join('\u0000')
 
   useEffect(() => {
     let active = true
+    // A newer filter/page run aborts the previous request, so a slow response
+    // cannot resolve into state that belongs to an older query.
+    const controller = new AbortController()
     setLoading(true)
     setError(null)
     loader
-      .current()
+      .current(controller.signal)
       .then((result) => {
         if (active) setData(result)
       })
       .catch((reason: unknown) => {
-        if (active) setError(apiErrorMessage(reason))
+        if (!active || isAbortError(reason)) return
+        setError(apiErrorMessage(reason))
       })
       .finally(() => {
         if (active) setLoading(false)
       })
     return () => {
       active = false
+      controller.abort()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, tick])
+  }, [key, tick])
 
   const reload = useCallback(() => setTick((value) => value + 1), [])
   return { data, loading, error, reload }
@@ -76,12 +82,12 @@ export function useFlash() {
     if (timer.current) clearTimeout(timer.current)
   }, [])
 
-  return {
-    flash,
-    success: (text: string) => show('success', text),
-    fail: (reason: unknown) => show('error', apiErrorMessage(reason)),
-    clear: () => setFlash(null),
-  }
+  // Stable identities, so callers can list them in effect dependencies.
+  const success = useCallback((text: string) => show('success', text), [show])
+  const fail = useCallback((reason: unknown) => show('error', apiErrorMessage(reason)), [show])
+  const clear = useCallback(() => setFlash(null), [])
+
+  return { flash, success, fail, clear }
 }
 
 /** Local form field errors from an ApiRequestError. */

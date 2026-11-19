@@ -22,6 +22,23 @@ const optionalNumber = (min: number, max: number, label: string) =>
       .optional(),
   )
 
+/**
+ * Money fields land in Decimal columns, so they must be finite and are rounded
+ * to two decimal places here instead of drifting at storage time.
+ */
+const optionalMoney = (min: number, max: number, label: string) =>
+  z.preprocess(
+    (value) => (value === '' || value === null || value === undefined ? null : Number(value)),
+    z
+      .number()
+      .finite(`${label} must be a number`)
+      .min(min, `${label} must be at least ${min}`)
+      .max(max, `${label} must be at most ${max}`)
+      .transform((value) => Math.round(value * 100) / 100)
+      .nullable()
+      .optional(),
+  )
+
 const status = z.enum(['DRAFT', 'PUBLISHED', 'ARCHIVED'])
 
 export const categorySchema = z.object({
@@ -46,7 +63,7 @@ export const destinationSchema = z.object({
   bestSeason: text(200),
   recommendedDurationDays: optionalNumber(1, 60, 'Duration'),
   difficultyLevel: z.enum(['easy', 'moderate', 'challenging', 'difficult']).optional(),
-  costPerPersonPerDay: optionalNumber(0, 1_000_000, 'Cost'),
+  costPerPersonPerDay: optionalMoney(0, 9_999_999_999.99, 'Cost'),
   latitude: optionalNumber(-90, 90, 'Latitude'),
   longitude: optionalNumber(-180, 180, 'Longitude'),
   imagePath: text(500),
@@ -59,7 +76,7 @@ export const activitySchema = z.object({
   type: z.enum(['ACTIVITY', 'ATTRACTION']).optional(),
   description: text(2000),
   durationHours: optionalNumber(0, 240, 'Duration'),
-  costEstimate: optionalNumber(0, 1_000_000, 'Estimated cost'),
+  costEstimate: optionalMoney(0, 9_999_999_999.99, 'Estimated cost'),
   costUpdatedAt: optionalDate,
   difficulty: text(60),
   bestSeason: text(120),
@@ -91,7 +108,7 @@ export const templateSchema = z.object({
   summary: text(2000),
   difficulty: text(60),
   durationDays: z.coerce.number().int().min(1, 'At least one day').max(60),
-  estimatedCost: optionalNumber(0, 10_000_000, 'Estimated cost'),
+  estimatedCost: optionalMoney(0, 9_999_999_999.99, 'Estimated cost'),
   status: status.optional(),
 })
 
@@ -100,7 +117,7 @@ const stopSchema = z.object({
   timeSlot: text(40),
   title: z.string().trim().min(1, 'Each stop needs a title').max(140),
   description: text(1000),
-  estimatedCost: optionalNumber(0, 1_000_000, 'Estimated cost'),
+  estimatedCost: optionalMoney(0, 9_999_999_999.99, 'Estimated cost'),
 })
 
 const daySchema = z.object({

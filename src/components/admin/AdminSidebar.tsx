@@ -111,7 +111,7 @@ export function AdminSidebar({
             <img src={logoMark} alt="" className="h-9 w-9 shrink-0 object-contain" />
             <span className="sidebar-label">
               <span className="block font-display text-lg leading-none text-ink">PathYatra</span>
-              <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.2em] text-ink-mute">
+              <span className="mt-1 block text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
                 Admin panel
               </span>
             </span>
@@ -133,7 +133,7 @@ export function AdminSidebar({
         </div>
 
         <nav className={cx('no-scrollbar flex-1 overflow-y-auto px-3 py-3', compact && 'lg:px-1.5')}>
-          <p className={cx('px-2 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-mute/80', compact && 'lg:hidden')}>
+          <p className={cx('px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute/80', compact && 'lg:hidden')}>
             Manage
           </p>
           <ul className="space-y-0.5">
@@ -166,7 +166,7 @@ export function AdminSidebar({
           <div className={cx('mb-2 rounded-xl bg-[#fbf5e8] px-3 py-2.5', compact && 'lg:hidden')}>
             <p className="truncate text-xs font-medium text-ink">{user?.name ?? 'Admin'}</p>
             <p className="truncate text-[11px] text-ink-mute">{user?.email}</p>
-            <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-pine-3">
+            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-pine-3">
               {user?.role?.replace('_', ' ')}
             </p>
           </div>

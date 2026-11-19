@@ -1,11 +1,19 @@
 import { z } from 'zod'
 import { nullableDate } from './fields.js'
 
+/** Money stored in Decimal(12, 2): finite, non-negative, rounded to paise. */
+const money = z.coerce
+  .number()
+  .finite('Enter a valid amount')
+  .min(0, 'Cost cannot be negative')
+  .max(9_999_999_999.99, 'That amount is too large')
+  .transform((value) => Math.round(value * 100) / 100)
+
 const stopSchema = z.object({
   timeSlot: z.string().trim().min(1, 'Time slot is required').max(40),
   title: z.string().trim().min(1, 'Stop title is required').max(140),
   description: z.string().trim().max(2000).nullish(),
-  estimatedCost: z.coerce.number().min(0, 'Cost cannot be negative').nullish(),
+  estimatedCost: money.nullish(),
   sortOrder: z.coerce.number().int().min(0).optional(),
 })
 
@@ -29,8 +37,10 @@ const itineraryFields = z.object({
     .min(1, 'At least one traveller is required')
     .max(50, 'Traveller count is too high')
     .default(1),
-  totalBudget: z.coerce.number().min(0, 'Budget cannot be negative').nullish(),
+  totalBudget: money.nullish(),
   status: z.enum(['draft', 'upcoming', 'completed']).default('draft'),
+  /** JSON blob of the rich client plan; the server stores it verbatim. */
+  clientPlan: z.string().max(200000).nullish(),
   days: z.array(daySchema).max(60).optional(),
 })
 

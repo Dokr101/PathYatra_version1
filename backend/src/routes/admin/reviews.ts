@@ -10,6 +10,7 @@ import {
   searchTerm,
   writeAudit,
 } from '../../lib/admin.js'
+import { getUserId } from '../../middleware/auth.js'
 
 export const adminReviewsRouter = Router()
 
@@ -80,13 +81,13 @@ adminReviewsRouter.patch(
         status: data.status,
         moderationNote: data.moderationNote ?? null,
         moderatedAt: new Date(),
-        moderatedById: req.userId!,
+        moderatedById: getUserId(req),
       },
       include,
     })
 
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: data.status === 'APPROVED' ? 'review.approve' : 'review.hide',
       entityType: 'Review',
       entityId: id,

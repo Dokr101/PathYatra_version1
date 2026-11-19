@@ -9,7 +9,7 @@ export function NotFound() {
         <ScenicArt scene={{ kind: 'hills', sky: 'dusk', seed: 6 }} className="h-[320px] w-full sm:h-[400px]" />
         <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/50 to-ink/20" />
         <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center text-paper">
-          <p className="text-[11px] uppercase tracking-[0.24em] text-paper/60">404 · off the trail</p>
+          <p className="text-[11px] uppercase tracking-[0.08em] text-paper/60">404 · off the trail</p>
           <h1 className="mt-3 font-display text-[clamp(2rem,5vw,3.6rem)] leading-[1]">This path does not exist.</h1>
           <p className="mt-3 max-w-md text-sm leading-relaxed text-paper/75">
             The page may have moved, or the link may be incomplete. The rest of Nepal is still where you left it.

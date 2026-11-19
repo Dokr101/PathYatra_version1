@@ -11,6 +11,7 @@ import {
   usePageTitle,
   usePagedList,
 } from '../../lib/adminHooks'
+import { clearPublicDestinationsCache } from '../../lib/publicDestinations'
 import { ConfirmDialog } from '../../components/admin/ConfirmDialog'
 import {
   AdminButton,
@@ -79,25 +80,23 @@ export function AdminMedia() {
       .list({ pageSize: 100, sort: 'name', order: 'asc' })
       .then((result) => setDestinations(result.items))
       .catch(() => undefined)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [api])
 
   useEffect(() => {
     const next = new URLSearchParams()
     if (destinationId) next.set('destinationId', destinationId)
     setParams(next, { replace: true })
     setPage(1)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [destinationId])
+  }, [destinationId, setParams])
 
   const { data, loading, error, reload } = usePagedList(
-    () =>
+    (signal) =>
       api.media.list({
         q: debouncedQuery,
         destinationId,
         page,
         pageSize: 24,
-      }),
+      }, signal),
     [debouncedQuery, destinationId, page],
   )
 
@@ -160,6 +159,9 @@ export function AdminMedia() {
           isCover: meta.isCover && Boolean(meta.destinationId),
         },
       )
+      // Public pages cache destination covers at module scope, so any media edit
+      // has to drop it; "View site" then loads the new image.
+      clearPublicDestinationsCache()
       success(`${staged.length} image${staged.length === 1 ? '' : 's'} uploaded.`)
       closeUpload(true)
       reload()
@@ -193,6 +195,7 @@ export function AdminMedia() {
         credit: editForm.credit,
         isCover: editForm.isCover,
       })
+      clearPublicDestinationsCache()
       success('Image details saved.')
       setEditing(null)
       reload()
@@ -207,6 +210,7 @@ export function AdminMedia() {
   const setCover = async (image: AdminImage) => {
     try {
       await api.media.setCover(image.id)
+      clearPublicDestinationsCache()
       success('Cover image updated.')
       reload()
     } catch (reason) {
@@ -218,6 +222,7 @@ export function AdminMedia() {
     if (!deleting) return
     try {
       await api.media.remove(deleting.id)
+      clearPublicDestinationsCache()
       success('Image deleted.')
       setDeleting(null)
       reload()
@@ -289,7 +294,7 @@ export function AdminMedia() {
                     className="h-full w-full object-cover"
                   />
                   {image.isCover ? (
-                    <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-pine px-2 py-0.5 text-[10px] font-semibold text-paper">
+                    <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-pine px-2 py-0.5 text-[11px] font-semibold text-paper">
                       <Star size={9} className="fill-marigold text-marigold" /> Cover
                     </span>
                   ) : null}
@@ -390,7 +395,7 @@ export function AdminMedia() {
                   >
                     <X size={10} />
                   </button>
-                  <p className="truncate bg-paper-2/80 px-1.5 py-1 text-[10px] text-ink-soft">
+                  <p className="truncate bg-paper-2/80 px-1.5 py-1 text-[11px] text-ink-soft">
                     {item.file.name}
                   </p>
                 </div>

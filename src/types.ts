@@ -18,6 +18,9 @@ export type RouteType = 'fastest' | 'scenic' | 'budget'
 
 export type PlanStage = 'draft' | 'upcoming' | 'completed'
 
+/** Where a plan stands relative to the API copy. */
+export type TripSyncState = 'local' | 'syncing' | 'synced' | 'error'
+
 export type StayKind = 'Teahouse' | 'Hotel' | 'Homestay' | 'Lodge' | 'Resort' | 'Guesthouse'
 
 export interface EnRouteStop {
@@ -42,15 +45,22 @@ export interface Destination {
   activities: string[]
   food: string[]
   essentials: string[]
+  /** Empty when neither the admin nor the editorial catalogue gives a season. */
   bestMonths: number[]
   difficulty: Difficulty
-  minDays: number
-  maxDays: number
-  costPerDay: number
+  /**
+   * Undefined when nobody has stated a duration or a daily cost for this place.
+   * The API's nullable columns are passed through as-is rather than filled with
+   * invented values, so the UI can say "Not yet set" instead of showing fiction.
+   */
+  minDays?: number
+  maxDays?: number
+  costPerDay?: number
   altitude?: number
   permit?: { name: string; cost: number; note?: string }
-  lat: number
-  lng: number
+  /** Undefined when the admin has not placed the destination on a map yet. */
+  lat?: number
+  lng?: number
   hiddenGem?: boolean
   scene: { kind: SceneKind; sky: SceneSky; seed: number }
   enRoute: EnRouteStop[]
@@ -61,6 +71,11 @@ export interface Destination {
   fallbackImageUrl?: string | null
   travelInfo?: PublicTravelInfo[]
   places?: PublicPlace[]
+  /** Server id from /api/destinations, when this destination came from the API. */
+  apiId?: string
+  /** Approved review stats, straight from /api/destinations. */
+  reviewCount?: number
+  averageRating?: number | null
 }
 
 export interface PublicTravelInfo {
@@ -121,6 +136,10 @@ export interface Review {
   text: string
   helpful: number
   verified: false
+  /** Moderation state for reviews submitted through the API. */
+  status?: 'pending' | 'approved'
+  serverId?: string
+  syncState?: 'local' | 'syncing' | 'synced' | 'error'
 }
 
 export interface Advisory {
@@ -225,4 +244,9 @@ export interface TripPlan {
   notes: string[]
   status: PlanStage
   title: string
+  /** Server identity once the plan is stored in the API. */
+  serverId?: string
+  /** Account that owns the server copy, when known. */
+  ownerId?: string
+  syncState?: TripSyncState
 }

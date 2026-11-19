@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import { Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { CheckCircle2, Menu, WifiOff } from 'lucide-react'
 import { useApp } from './context/AppContext'
@@ -7,38 +8,75 @@ import { Footer } from './components/Footer'
 import { AuthModal } from './components/AuthModal'
 import { CompareTray } from './components/CompareTray'
 import { LandingHeader } from './components/LandingHeader'
+import { PageSkeleton } from './components/PageSkeleton'
+import { ErrorBoundary } from './components/ErrorBoundary'
+import { IntroLogo } from './components/IntroLogo'
+import logo from './assets/logo.png'
 import { Home } from './pages/Home'
-import { Explore } from './pages/Explore'
-import { DestinationPage } from './pages/DestinationPage'
-import { Planner } from './pages/Planner'
-import { ItineraryPage } from './pages/ItineraryPage'
-import { BudgetPlanner } from './pages/BudgetPlanner'
-import { MeroYatra } from './pages/MeroYatra'
-import { Reviews } from './pages/Reviews'
-import { Profile } from './pages/Profile'
-import { MapPage } from './pages/MapPage'
-import { SharedItinerary } from './pages/SharedItinerary'
-import { Help } from './pages/Help'
-import { NotFound } from './pages/NotFound'
 import { loadJSON, saveJSON } from './lib/storage'
 
-import { AdminProtectedRoute } from './components/admin/AdminProtectedRoute'
-import { AdminLayout } from './components/admin/AdminLayout'
-import { AdminLogin } from './pages/admin/AdminLogin'
-import { AdminDashboard } from './pages/admin/AdminDashboard'
-import { AdminDestinations } from './pages/admin/AdminDestinations'
-import { AdminDestinationForm } from './pages/admin/AdminDestinationForm'
-import { AdminMedia } from './pages/admin/AdminMedia'
-import { AdminCategories } from './pages/admin/AdminCategories'
-import { AdminActivities } from './pages/admin/AdminActivities'
-import { AdminPlaces } from './pages/admin/AdminPlaces'
-import { AdminItineraryTemplates } from './pages/admin/AdminItineraryTemplates'
-import { AdminTravelInfo } from './pages/admin/AdminTravelInfo'
-import { AdminReviews } from './pages/admin/AdminReviews'
-import { AdminUsers } from './pages/admin/AdminUsers'
-import { AdminAnalytics } from './pages/admin/AdminAnalytics'
-import { AdminSettings } from './pages/admin/AdminSettings'
-import { AdminAuditLogs } from './pages/admin/AdminAuditLogs'
+/**
+ * Only the landing page ships in the entry bundle; every other route is its own
+ * chunk. Anything heavy (Leaflet, the admin panel) stays out of a first visit.
+ */
+const Explore = lazy(() => import('./pages/Explore').then((module) => ({ default: module.Explore })))
+const DestinationPage = lazy(() =>
+  import('./pages/DestinationPage').then((module) => ({ default: module.DestinationPage })),
+)
+const Planner = lazy(() => import('./pages/Planner').then((module) => ({ default: module.Planner })))
+const ItineraryPage = lazy(() =>
+  import('./pages/ItineraryPage').then((module) => ({ default: module.ItineraryPage })),
+)
+const BudgetPlanner = lazy(() =>
+  import('./pages/BudgetPlanner').then((module) => ({ default: module.BudgetPlanner })),
+)
+const MeroYatra = lazy(() => import('./pages/MeroYatra').then((module) => ({ default: module.MeroYatra })))
+const Reviews = lazy(() => import('./pages/Reviews').then((module) => ({ default: module.Reviews })))
+const Profile = lazy(() => import('./pages/Profile').then((module) => ({ default: module.Profile })))
+const MapPage = lazy(() => import('./pages/MapPage').then((module) => ({ default: module.MapPage })))
+const SharedItinerary = lazy(() =>
+  import('./pages/SharedItinerary').then((module) => ({ default: module.SharedItinerary })),
+)
+const Help = lazy(() => import('./pages/Help').then((module) => ({ default: module.Help })))
+const NotFound = lazy(() => import('./pages/NotFound').then((module) => ({ default: module.NotFound })))
+
+// One shared module for the whole admin panel, so its 15 pages are one chunk.
+const loadAdmin = () => import('./pages/admin/barrel')
+const AdminLayout = lazy(() => loadAdmin().then((module) => ({ default: module.AdminLayout })))
+const AdminProtectedRoute = lazy(() =>
+  loadAdmin().then((module) => ({ default: module.AdminProtectedRoute })),
+)
+const AdminLogin = lazy(() => loadAdmin().then((module) => ({ default: module.AdminLogin })))
+const AdminDashboard = lazy(() => loadAdmin().then((module) => ({ default: module.AdminDashboard })))
+const AdminDestinations = lazy(() =>
+  loadAdmin().then((module) => ({ default: module.AdminDestinations })),
+)
+const AdminDestinationForm = lazy(() =>
+  loadAdmin().then((module) => ({ default: module.AdminDestinationForm })),
+)
+const AdminMedia = lazy(() => loadAdmin().then((module) => ({ default: module.AdminMedia })))
+const AdminCategories = lazy(() => loadAdmin().then((module) => ({ default: module.AdminCategories })))
+const AdminActivities = lazy(() => loadAdmin().then((module) => ({ default: module.AdminActivities })))
+const AdminPlaces = lazy(() => loadAdmin().then((module) => ({ default: module.AdminPlaces })))
+const AdminItineraryTemplates = lazy(() =>
+  loadAdmin().then((module) => ({ default: module.AdminItineraryTemplates })),
+)
+const AdminTravelInfo = lazy(() => loadAdmin().then((module) => ({ default: module.AdminTravelInfo })))
+const AdminReviews = lazy(() => loadAdmin().then((module) => ({ default: module.AdminReviews })))
+const AdminUsers = lazy(() => loadAdmin().then((module) => ({ default: module.AdminUsers })))
+const AdminAnalytics = lazy(() => loadAdmin().then((module) => ({ default: module.AdminAnalytics })))
+const AdminSettings = lazy(() => loadAdmin().then((module) => ({ default: module.AdminSettings })))
+const AdminAuditLogs = lazy(() => loadAdmin().then((module) => ({ default: module.AdminAuditLogs })))
+
+/** Fades and lifts the new page in on every pathname change (see .route-enter). */
+function PageTransition({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation()
+  return (
+    <div key={pathname} className="route-enter">
+      {children}
+    </div>
+  )
+}
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -130,7 +168,11 @@ function PublicLayout() {
       <div className="min-h-screen bg-paper">
         <LandingHeader solid />
         <main className="guest-main flex-1 pt-[72px]">
-          <Outlet />
+          <PageTransition>
+            <Suspense fallback={<PageSkeleton />}>
+              <Outlet />
+            </Suspense>
+          </PageTransition>
         </main>
         <Footer />
         <AuthModal />
@@ -159,14 +201,19 @@ function PublicLayout() {
             type="button"
             onClick={toggleSidebar}
             aria-label="Toggle navigation"
-            className="motion-press rounded-lg border border-line bg-white/60 p-2 text-ink-soft hover:bg-paper-2"
+            aria-expanded={sidebarOpen}
+            className="motion-press inline-flex h-11 w-11 items-center justify-center rounded-lg border border-line bg-white/60 text-ink-soft hover:bg-paper-2"
           >
             <Menu size={18} />
           </button>
         </header>
 
         <main className="flex-1">
-          <Outlet />
+          <PageTransition>
+            <Suspense fallback={<PageSkeleton />}>
+              <Outlet />
+            </Suspense>
+          </PageTransition>
         </main>
         <Footer />
       </div>
@@ -178,68 +225,80 @@ function PublicLayout() {
 }
 
 export default function App() {
+  const location = useLocation()
+
   return (
     <div className="min-h-screen">
+      {/* Once per browser session, above every route and overlay. */}
+      <IntroLogo logoSrc={logo} />
       <NetworkStatus />
       <ScrollToTop />
-      <Routes>
-        {/* Landing page — standalone layout with its own lightweight header */}
-        <Route
-          path="/"
-          element={
-            <div className="min-h-screen bg-paper">
-              <Home />
-              <Footer />
-              <AuthModal />
-              <CompareTray />
-            </div>
-          }
-        />
+      {/* A failed chunk or render throw must not blank the app: the boundary
+          shows a reload/home escape hatch, and a route change clears it. */}
+      <ErrorBoundary resetKey={location.pathname} scope="app">
+        <Suspense fallback={<PageSkeleton label="Loading admin" />}>
+          <Routes>
+          {/* Landing page — standalone layout with its own lightweight header */}
+          <Route
+            path="/"
+            element={
+              <div className="min-h-screen bg-paper">
+                <PageTransition>
+                  <Home />
+                </PageTransition>
+                <Footer />
+                <AuthModal />
+                <CompareTray />
+              </div>
+            }
+          />
 
-        <Route element={<PublicLayout />}>
-          <Route path="/explore" element={<Explore />} />
-          <Route path="/explore/:slug" element={<DestinationPage />} />
-          <Route path="/plan" element={<Planner />} />
-          <Route path="/itinerary/:id" element={<ItineraryPage />} />
-          <Route path="/budget" element={<BudgetPlanner />} />
-          <Route path="/mero-yatra" element={<MeroYatra />} />
-          <Route path="/reviews" element={<Reviews />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/map" element={<MapPage />} />
-          <Route path="/shared" element={<SharedItinerary />} />
-          <Route path="/help" element={<Help />} />
-          <Route path="*" element={<NotFound />} />
-        </Route>
+          <Route element={<PublicLayout />}>
+            <Route path="/explore" element={<Explore />} />
+            <Route path="/explore/:slug" element={<DestinationPage />} />
+            <Route path="/plan" element={<Planner />} />
+            <Route path="/itinerary/:id" element={<ItineraryPage />} />
+            <Route path="/budget" element={<BudgetPlanner />} />
+            <Route path="/mero-yatra" element={<MeroYatra />} />
+            <Route path="/reviews" element={<Reviews />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/map" element={<MapPage />} />
+            <Route path="/shared" element={<SharedItinerary />} />
+            <Route path="/help" element={<Help />} />
+            <Route path="*" element={<NotFound />} />
+          </Route>
 
-        <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
 
-        <Route
-          path="/admin"
-          element={
-            <AdminProtectedRoute>
-              <AdminLayout />
-            </AdminProtectedRoute>
-          }
-        >
-          <Route index element={<AdminDashboard />} />
-          <Route path="destinations" element={<AdminDestinations />} />
-          <Route path="destinations/new" element={<AdminDestinationForm />} />
-          <Route path="destinations/:id/edit" element={<AdminDestinationForm />} />
-          <Route path="media" element={<AdminMedia />} />
-          <Route path="categories" element={<AdminCategories />} />
-          <Route path="activities" element={<AdminActivities />} />
-          <Route path="places" element={<AdminPlaces />} />
-          <Route path="itineraries" element={<AdminItineraryTemplates />} />
-          <Route path="itineraries/:id" element={<AdminItineraryTemplates />} />
-          <Route path="travel-info" element={<AdminTravelInfo />} />
-          <Route path="reviews" element={<AdminReviews />} />
-          <Route path="users" element={<AdminUsers />} />
-          <Route path="analytics" element={<AdminAnalytics />} />
-          <Route path="settings" element={<AdminSettings />} />
-          <Route path="audit-logs" element={<AdminAuditLogs />} />
-          <Route path="*" element={<NotFound />} />
-        </Route>
-      </Routes>
+          <Route
+            path="/admin"
+            element={
+              <AdminProtectedRoute>
+                <AdminLayout />
+              </AdminProtectedRoute>
+            }
+          >
+            <Route index element={<AdminDashboard />} />
+            <Route path="destinations" element={<AdminDestinations />} />
+            <Route path="destinations/new" element={<AdminDestinationForm />} />
+            <Route path="destinations/:id/edit" element={<AdminDestinationForm />} />
+            <Route path="media" element={<AdminMedia />} />
+            <Route path="categories" element={<AdminCategories />} />
+            <Route path="activities" element={<AdminActivities />} />
+            <Route path="places" element={<AdminPlaces />} />
+            <Route path="itineraries" element={<AdminItineraryTemplates />} />
+            <Route path="itineraries/:id" element={<AdminItineraryTemplates />} />
+            <Route path="travel-info" element={<AdminTravelInfo />} />
+            <Route path="reviews" element={<AdminReviews />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="analytics" element={<AdminAnalytics />} />
+            <Route path="settings" element={<AdminSettings />} />
+            <Route path="audit-logs" element={<AdminAuditLogs />} />
+            <Route path="*" element={<NotFound />} />
+          </Route>
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
       <Toast />
     </div>
   )

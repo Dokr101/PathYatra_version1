@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { BarChart3, CalendarDays, Info } from 'lucide-react'
 import type { AdminAnalytics as AnalyticsData } from '../../lib/api'
 import { apiErrorMessage } from '../../lib/api'
@@ -52,7 +52,7 @@ function Bars({
           />
         ))}
       </div>
-      <div className="mt-1 flex justify-between text-[10px] text-ink-mute">
+      <div className="mt-1 flex justify-between text-[11px] text-ink-mute">
         <span>{formatDate(data[0].date)}</span>
         <span>{formatDate(data[data.length - 1].date)}</span>
       </div>
@@ -70,20 +70,26 @@ export function AdminAnalytics() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const load = (rangeFrom = from, rangeTo = to) => {
-    setLoading(true)
-    setError(null)
-    api
-      .analytics({ from: rangeFrom, to: rangeTo })
-      .then(setData)
-      .catch((reason: unknown) => setError(apiErrorMessage(reason)))
-      .finally(() => setLoading(false))
-  }
+  const load = useCallback(
+    (rangeFrom: string, rangeTo: string) => {
+      setLoading(true)
+      setError(null)
+      api
+        .analytics({ from: rangeFrom, to: rangeTo })
+        .then(setData)
+        .catch((reason: unknown) => setError(apiErrorMessage(reason)))
+        .finally(() => setLoading(false))
+    },
+    [api],
+  )
 
+  // The first load reads the range once; later loads come from Apply or a
+  // preset, which pass the dates they just picked rather than refetching on
+  // every keystroke in the date inputs.
+  const initialRange = useRef({ from, to })
   useEffect(() => {
-    load(from, to)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    load(initialRange.current.from, initialRange.current.to)
+  }, [load])
 
   const applyPreset = (days: number) => {
     const nextFrom = daysAgoInput(days - 1)
@@ -118,7 +124,7 @@ export function AdminAnalytics() {
             <Field label="To" className="w-[150px]">
               <TextInput type="date" value={to} onChange={setTo} />
             </Field>
-            <AdminButton variant="primary" onClick={() => load()} loading={loading}>
+            <AdminButton variant="primary" onClick={() => load(from, to)} loading={loading}>
               <CalendarDays size={13} /> Apply range
             </AdminButton>
           </div>
@@ -145,7 +151,7 @@ export function AdminAnalytics() {
               { label: 'Registered users', value: data.usersOverTime.reduce((sum, point) => sum + point.count, 0), total: data.totals.users },
             ].map((card) => (
               <div key={card.label} className="rounded-2xl border border-line bg-[#fffdf8] px-4 py-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-mute">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
                   {card.label}
                 </p>
                 <p className="mt-2 font-display text-3xl leading-none">{card.value}</p>

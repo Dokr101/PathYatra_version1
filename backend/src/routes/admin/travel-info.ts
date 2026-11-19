@@ -10,6 +10,7 @@ import {
   searchTerm,
   writeAudit,
 } from '../../lib/admin.js'
+import { getUserId } from '../../middleware/auth.js'
 
 export const adminTravelInfoRouter = Router()
 
@@ -62,7 +63,7 @@ adminTravelInfoRouter.post(
       include,
     })
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: 'travelInfo.create',
       entityType: 'TravelInfo',
       entityId: info.id,
@@ -85,7 +86,7 @@ adminTravelInfoRouter.patch(
     }
     const info = await prisma.travelInfo.update({ where: { id }, data, include })
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: 'travelInfo.update',
       entityType: 'TravelInfo',
       entityId: id,
@@ -103,7 +104,7 @@ adminTravelInfoRouter.delete(
     if (!existing) throw new ApiError(404, 'Travel information not found')
     await prisma.travelInfo.delete({ where: { id } })
     await writeAudit({
-      adminId: req.userId!,
+      adminId: getUserId(req),
       action: 'travelInfo.delete',
       entityType: 'TravelInfo',
       entityId: id,

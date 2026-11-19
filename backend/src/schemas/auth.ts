@@ -25,3 +25,21 @@ export const loginSchema = z.object({
   email: emailField,
   password: z.string().min(1, 'Password is required'),
 })
+
+/** Same policy as registration, so a changed password is never weaker than a new one. */
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Enter your current password'),
+    newPassword: z
+      .string()
+      .min(8, 'Use at least 8 characters for the password')
+      .regex(/[A-Z]/, 'Add at least one uppercase letter')
+      .regex(/[0-9]/, 'Add at least one number')
+      .regex(/[^A-Za-z0-9]/, 'Add at least one symbol')
+      .max(72, 'Password must be 72 characters or fewer'),
+    confirmPassword: z.string().min(1, 'Confirm the new password'),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    path: ['confirmPassword'],
+    message: 'Passwords do not match',
+  })

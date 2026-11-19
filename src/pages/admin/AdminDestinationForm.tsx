@@ -25,6 +25,7 @@ import {
   useFlash,
   usePageTitle,
 } from '../../lib/adminHooks'
+import { clearPublicDestinationsCache } from '../../lib/publicDestinations'
 import { ConfirmDialog } from '../../components/admin/ConfirmDialog'
 import {
   AdminButton,
@@ -131,8 +132,7 @@ export function AdminDestinationForm() {
         }
       })
       .catch(() => undefined)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [api, isNew])
 
   const hydrate = (data: AdminDestination) => {
     setDestination(data)
@@ -183,14 +183,13 @@ export function AdminDestinationForm() {
     return () => {
       active = false
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
+  }, [api, id])
 
   useEffect(() => {
+    // Router state only changes on navigation, so this stays a one-shot toast.
     const state = location.state as { created?: boolean } | null
     if (state?.created) success('Destination created as a draft. Review it, then publish when ready.')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [location.state, success])
 
   const cover = useMemo(
     () => destination?.images.find((image) => image.isCover) ?? destination?.images[0] ?? null,
@@ -239,10 +238,14 @@ export function AdminDestinationForm() {
     try {
       if (isNew) {
         const created = await api.destinations.create(body)
+        // Public pages cache destinations at module scope; drop it so "View
+        // site" shows this record instead of the previous list.
+        clearPublicDestinationsCache()
         success('Destination created.')
         navigate(`/admin/destinations/${created.id}/edit`, { replace: true, state: { created: true } })
       } else {
         const updated = await api.destinations.update(id!, body)
+        clearPublicDestinationsCache()
         hydrate(updated)
         success(
           nextStatus === 'PUBLISHED'
@@ -263,6 +266,7 @@ export function AdminDestinationForm() {
   const setCover = async (imageId: string) => {
     try {
       await api.media.setCover(imageId)
+      clearPublicDestinationsCache()
       const refreshed = await api.destinations.get(id!)
       hydrate(refreshed)
       success('Cover image updated.')
@@ -310,7 +314,7 @@ export function AdminDestinationForm() {
             <Eye size={13} /> Preview
           </AdminButton>
           {!isNew && destination?.status === 'PUBLISHED' ? (
-            <a href={`/explore/${destination.slug}`} target="_blank" rel="noreferrer">
+            <a href={`/explore/${destination.slug}`} target="_blank" rel="noopener noreferrer">
               <AdminButton>
                 <ExternalLink size={13} /> Public page
               </AdminButton>
@@ -477,7 +481,7 @@ export function AdminDestinationForm() {
             description="Cover and gallery images uploaded through the Image Library."
             actions={
               id ? (
-                <a href={`/admin/media?destinationId=${id}`} target="_blank" rel="noreferrer">
+                <a href={`/admin/media?destinationId=${id}`} target="_blank" rel="noopener noreferrer">
                   <AdminButton size="sm">
                     <Images size={12} /> Manage images
                   </AdminButton>
@@ -499,18 +503,18 @@ export function AdminDestinationForm() {
                   <figure key={image.id} className="overflow-hidden rounded-xl border border-line">
                     <img src={image.url} alt={image.altText ?? ''} className="h-28 w-full object-cover" />
                     <figcaption className="flex items-center justify-between gap-1 bg-paper-2/60 px-2 py-1.5">
-                      <span className="truncate text-[10px] text-ink-mute">
+                      <span className="truncate text-[11px] text-ink-mute">
                         {image.altText || image.caption || 'Untitled'}
                       </span>
                       {image.isCover ? (
-                        <span className="inline-flex shrink-0 items-center gap-0.5 text-[10px] font-medium text-pine">
+                        <span className="inline-flex shrink-0 items-center gap-0.5 text-[11px] font-medium text-pine">
                           <Star size={9} className="fill-marigold text-marigold" /> Cover
                         </span>
                       ) : (
                         <button
                           type="button"
                           onClick={() => void setCover(image.id)}
-                          className="shrink-0 text-[10px] text-pine hover:underline"
+                          className="shrink-0 text-[11px] text-pine hover:underline"
                         >
                           Set cover
                         </button>
@@ -674,7 +678,7 @@ export function AdminDestinationForm() {
           )}
           {form.highlights ? (
             <div>
-              <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-mute">
+              <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
                 Highlights
               </p>
               <ul className="list-inside list-disc space-y-0.5 text-sm text-ink-soft">

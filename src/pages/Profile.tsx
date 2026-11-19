@@ -56,12 +56,16 @@ export function Profile() {
   }
 
   const completed = trips.filter((trip) => trip.status === 'completed')
+  // Drafts and confirmed-but-upcoming trips are plans, not journeys taken yet.
+  const planned = trips.filter((trip) => trip.status !== 'completed')
   const visited = completed
     .map((trip) => getDestination(trip.destinationSlug))
     .filter((item): item is NonNullable<typeof item> => Boolean(item))
   const provincesVisited = new Set(visited.map((item) => item.province))
   const totalDays = completed.reduce((sum, trip) => sum + trip.days, 0)
-  const totalSpend = completed.reduce((sum, trip) => sum + trip.costs.group, 0)
+  const daysPlanned = planned.reduce((sum, trip) => sum + trip.days, 0)
+  const completedSpend = completed.reduce((sum, trip) => sum + trip.costs.group, 0)
+  const plannedSpend = planned.reduce((sum, trip) => sum + trip.costs.group, 0)
   const reviewCount = reviews.filter((review) => review.author === user.name).length
 
   const saveDetails = () => {
@@ -79,7 +83,11 @@ export function Profile() {
     <div className="container-page py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex items-center gap-4">
-          <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-pine text-xl font-semibold text-paper">
+          {/* Decorative: the <h1> next to it already names the account. */}
+          <span
+            aria-hidden="true"
+            className="flex h-16 w-16 items-center justify-center rounded-2xl bg-pine text-xl font-semibold text-paper"
+          >
             {initials(user.name)}
           </span>
           <div>
@@ -103,12 +111,15 @@ export function Profile() {
         </div>
       </div>
 
-      <div className="mt-7 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="mt-7 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Stat value={visited.length} label="Destinations explored" />
-        <Stat value={completed.length} label="Trips completed" />
         <Stat value={provincesVisited.size} label="Provinces visited" />
-        <Stat value={totalDays} label="Travel days" />
-        <Stat value={npr(totalSpend)} label="Estimated spend" />
+        <Stat value={completed.length} label="Completed trips" />
+        <Stat value={planned.length} label="Trips planned" />
+        <Stat value={totalDays} label="Days travelled" />
+        <Stat value={daysPlanned} label="Days planned" />
+        <Stat value={npr(completedSpend)} label="Spent on completed" />
+        <Stat value={npr(plannedSpend)} label="Planned spend" />
       </div>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-[1.2fr_1fr]">
@@ -240,7 +251,7 @@ export function Profile() {
                 </div>
               </div>
             </div>
-            <p className="mt-3 text-[10px] text-ink-mute">Preferences save automatically.</p>
+            <p className="mt-3 text-[11px] text-ink-mute">Preferences save automatically.</p>
           </section>
 
           {/* History */}
@@ -271,7 +282,7 @@ export function Profile() {
                       ) : null}
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-xs font-medium text-ink">{trip.title}</span>
-                        <span className="block text-[10px] text-ink-mute">
+                        <span className="block text-[11px] text-ink-mute">
                           {formatDateRange(trip.startDate, trip.days)} · {npr(trip.costs.group)}
                         </span>
                       </span>
@@ -309,8 +320,15 @@ export function Profile() {
                 </span>
               </div>
             </div>
-            <div className="mt-3 rounded-xl bg-paper-2/60 px-3 py-2 text-[10px] leading-relaxed text-ink-soft">
-              Statistics use completed trips only, so they reflect journeys you have actually taken rather than plans.
+            <div className="mt-3 space-y-1 rounded-xl bg-paper-2/60 px-3 py-2 text-[11px] leading-relaxed text-ink-soft">
+              <p>
+                <span className="font-medium text-ink">Completed</span> figures come from trips you marked completed:{' '}
+                {completed.length} {completed.length === 1 ? 'trip' : 'trips'}, {npr(completedSpend)} spent.
+              </p>
+              <p>
+                <span className="font-medium text-ink">Planned</span> figures come from drafts and upcoming trips:{' '}
+                {planned.length} {planned.length === 1 ? 'trip' : 'trips'}, {npr(plannedSpend)} estimated.
+              </p>
             </div>
           </section>
 
@@ -338,7 +356,7 @@ export function Profile() {
             <button type="button" onClick={saveNotifications} className="btn-ghost mt-3 w-full py-2 text-[11px]">
               Save preferences
             </button>
-            <p className="mt-2 text-[10px] text-ink-mute">No email is sent in this demo build.</p>
+            <p className="mt-2 text-[11px] text-ink-mute">No email is sent in this demo build.</p>
           </section>
 
           <section className="rounded-2xl border border-line bg-white/60 p-5">

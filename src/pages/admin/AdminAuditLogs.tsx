@@ -28,7 +28,7 @@ export function AdminAuditLogs() {
   useEffect(() => setPage(1), [debouncedQuery, entityType, from, to])
 
   const { data, loading, error } = usePagedList(
-    () =>
+    (signal) =>
       api.auditLogs.list({
         q: debouncedQuery,
         entityType,
@@ -36,7 +36,7 @@ export function AdminAuditLogs() {
         to,
         page,
         pageSize: 30,
-      }),
+      }, signal),
     [debouncedQuery, entityType, from, to, page],
   )
 
@@ -121,7 +121,7 @@ export function AdminAuditLogs() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[900px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-line bg-paper-2/50 text-[10px] uppercase tracking-[0.12em] text-ink-mute">
+                  <tr className="border-b border-line bg-paper-2/50 text-[11px] uppercase tracking-[0.08em] text-ink-mute">
                     <th className="px-4 py-3 font-semibold">When</th>
                     <th className="px-3 py-3 font-semibold">Admin</th>
                     <th className="px-3 py-3 font-semibold">Action</th>
@@ -139,17 +139,17 @@ export function AdminAuditLogs() {
                       </td>
                       <td className="px-3 py-3">
                         <p className="text-xs font-medium">{entry.admin.fullName}</p>
-                        <p className="text-[10px] text-ink-mute">{entry.admin.email}</p>
+                        <p className="text-[11px] text-ink-mute">{entry.admin.email}</p>
                       </td>
                       <td className="px-3 py-3">
-                        <code className="rounded bg-paper-2 px-1.5 py-0.5 text-[10px] text-ink-soft">
+                        <code className="rounded bg-paper-2 px-1.5 py-0.5 text-[11px] text-ink-soft">
                           {entry.action}
                         </code>
                       </td>
                       <td className="px-3 py-3 text-[11px] text-ink-soft">
                         {entry.entityType}
                         {entry.entityId ? (
-                          <span className="block truncate text-[10px] text-ink-mute">
+                          <span className="block truncate text-[11px] text-ink-mute">
                             {entry.entityId}
                           </span>
                         ) : null}

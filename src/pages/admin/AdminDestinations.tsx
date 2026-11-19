@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Archive, ExternalLink, MapPin, Pencil, Plus, Trash2 } from 'lucide-react'
-import type { AdminCategory, AdminDestination, ContentStatus } from '../../lib/api'
+import type { AdminCategory, AdminDestination } from '../../lib/api'
 import { apiErrorMessage } from '../../lib/api'
 import { useAdminApi, useDebounced, useFlash, usePageTitle, usePagedList } from '../../lib/adminHooks'
+import { clearPublicDestinationsCache } from '../../lib/publicDestinations'
 import { ConfirmDialog } from '../../components/admin/ConfirmDialog'
 import {
   AdminButton,
-  Field,
   InlineAlert,
   LoadingBlock,
   PageHeader,
@@ -42,8 +42,7 @@ export function AdminDestinations() {
 
   useEffect(() => {
     api.categories.list().then((result) => setCategories(result.items)).catch(() => undefined)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [api])
 
   useEffect(() => {
     const next = new URLSearchParams()
@@ -54,11 +53,10 @@ export function AdminDestinations() {
     if (order !== 'desc') next.set('order', order)
     setParams(next, { replace: true })
     setPage(1)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, categoryId, province, sort, order])
+  }, [status, categoryId, province, sort, order, setParams])
 
   const { data, loading, error, reload } = usePagedList(
-    () =>
+    (signal) =>
       api.destinations.list({
         q: debouncedQuery,
         status,
@@ -68,7 +66,7 @@ export function AdminDestinations() {
         order,
         page,
         pageSize: 20,
-      }),
+      }, signal),
     [debouncedQuery, status, categoryId, province, sort, order, page],
   )
 
@@ -94,9 +92,11 @@ export function AdminDestinations() {
     try {
       if (kind === 'archive') {
         await api.destinations.update(destination.id, { status: 'ARCHIVED' })
+        clearPublicDestinationsCache()
         success(`“${destination.name}” archived. Saved trips still reference it.`)
       } else {
         await api.destinations.remove(destination.id)
+        clearPublicDestinationsCache()
         success(`“${destination.name}” deleted.`)
       }
       setPending(null)
@@ -197,7 +197,7 @@ export function AdminDestinations() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[860px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-line bg-paper-2/50 text-[10px] uppercase tracking-[0.12em] text-ink-mute">
+                  <tr className="border-b border-line bg-paper-2/50 text-[11px] uppercase tracking-[0.08em] text-ink-mute">
                     <th className="px-4 py-3 font-semibold">Destination</th>
                     <th className="px-3 py-3 font-semibold">Category</th>
                     <th className="px-3 py-3 font-semibold">Province</th>
@@ -257,7 +257,7 @@ export function AdminDestinations() {
                               <a
                                 href={`/explore/${destination.slug}`}
                                 target="_blank"
-                                rel="noreferrer"
+                                rel="noopener noreferrer"
                                 title="Preview on the public site"
                                 className="rounded-full border border-line bg-[#fffdf8] p-1.5 text-ink-soft hover:bg-paper-2"
                               >

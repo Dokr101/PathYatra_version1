@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Eye, EyeOff, LockKeyhole, ShieldCheck } from 'lucide-react'
 import logoMark from '../../assets/logo-mark.png'
 import { useApp } from '../../context/AppContext'
+import { safeInternalPath } from '../../lib/safePath'
 import { AdminButton, Field, InlineAlert, TextInput } from '../../components/admin/AdminUI'
 
 interface LocationState {
@@ -23,9 +24,15 @@ export function AdminLogin() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
 
+  // Only ever navigate to an internal admin path: safeInternalPath rejects
+  // absolute/off-origin URLs, and the prefix check keeps public routes out of
+  // the admin area.
+  const safeFrom = safeInternalPath(state.from)
+  const destination = safeFrom?.startsWith('/admin') ? safeFrom : '/admin'
+
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN'
   if (authReady && isAdmin) {
-    return <Navigate to={state.from && state.from.startsWith('/admin') ? state.from : '/admin'} replace />
+    return <Navigate to={destination} replace />
   }
 
   const submit = async (event: React.FormEvent) => {
@@ -49,7 +56,7 @@ export function AdminLogin() {
       setError('This account does not have admin access. Use an administrator account.')
       return
     }
-    navigate(state.from && state.from.startsWith('/admin') ? state.from : '/admin', { replace: true })
+    navigate(destination, { replace: true })
   }
 
   return (
@@ -67,7 +74,7 @@ export function AdminLogin() {
             <img src={logoMark} alt="" className="h-11 w-11 object-contain" />
             <div>
               <p className="font-display text-2xl leading-none">PathYatra</p>
-              <p className="mt-1.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-pine-3">
+              <p className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-pine-3">
                 <ShieldCheck size={11} /> Admin panel
               </p>
             </div>
@@ -152,8 +159,8 @@ export function AdminLogin() {
         </div>
 
         <p className="mt-5 flex items-center justify-center gap-1.5 text-[11px] text-ink-mute">
-          <LockKeyhole size={11} /> Bearer-token authentication · the same account system as the
-          public site
+          <LockKeyhole size={11} /> HttpOnly cookie session · the same account system as the public
+          site
         </p>
       </div>
     </div>

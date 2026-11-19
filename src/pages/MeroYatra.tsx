@@ -5,19 +5,23 @@ import {
   ArrowUpRight,
   CalendarDays,
   CheckCircle2,
+  Cloud,
+  CloudOff,
   Copy,
   FileText,
+  HardDrive,
   Heart,
   Layers,
   MapPin,
   NotebookTabs,
   Plus,
+  RefreshCw,
   Share2,
   Sparkles,
   Trash2,
   Users,
 } from 'lucide-react'
-import type { TripPlan } from '../types'
+import type { TripPlan, TripSyncState } from '../types'
 import { useApp } from '../context/AppContext'
 import { getDestination } from '../data/destinations'
 import { ORIGINS } from '../data/taxonomy'
@@ -25,6 +29,8 @@ import { generateTrip } from '../lib/itinerary'
 import { copyText, shareLink } from '../lib/share'
 import { addDays, cx, formatDateRange, npr, todayISO } from '../lib/format'
 import { DestinationCard } from '../components/DestinationCard'
+import { DestinationCardSkeleton, TripCardSkeleton } from '../components/CardSkeletons'
+import { staggerDelay, useDelayedFlag } from '../lib/motion'
 import { EmptyState, Modal, Pill, Stat } from '../components/ui'
 import { DestinationImage } from '../components/DestinationImage'
 import { ScenicArt } from '../components/ScenicArt'
@@ -33,11 +39,45 @@ type Tab = 'upcoming' | 'saved' | 'completed' | 'drafts' | 'favorites'
 
 const TABS: Array<{ id: Tab; label: string; hint: string }> = [
   { id: 'upcoming', label: 'Upcoming', hint: 'Confirmed plans with a date in front of them' },
-  { id: 'saved', label: 'Saved', hint: 'Every itinerary on this device' },
+  { id: 'saved', label: 'Saved', hint: 'Every itinerary — synced to your account or saved on this device' },
   { id: 'completed', label: 'Completed', hint: 'Your travel history' },
   { id: 'drafts', label: 'Drafts', hint: 'Generated but not confirmed' },
   { id: 'favorites', label: 'Favorites', hint: 'Bookmarked destinations' },
 ]
+
+const SYNC_COPY: Record<
+  TripSyncState,
+  { label: string; tone: string; icon: typeof Cloud; spin?: boolean }
+> = {
+  synced: { label: 'Synced', tone: 'border-pine/30 bg-pine/10 text-pine', icon: Cloud },
+  syncing: { label: 'Syncing', tone: 'border-marigold/40 bg-marigold/15 text-[#7a5410]', icon: RefreshCw, spin: true },
+  local: { label: 'On this device', tone: 'border-line bg-paper-2 text-ink-mute', icon: HardDrive },
+  error: { label: 'Not synced', tone: 'border-clay/30 bg-clay/10 text-clay', icon: CloudOff },
+}
+
+function SyncBadge({ state = 'local' }: { state?: TripSyncState }) {
+  const meta = SYNC_COPY[state]
+  const Icon = meta.icon
+  return (
+    <span
+      className={cx(
+        'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium',
+        meta.tone,
+      )}
+      title={
+        state === 'synced'
+          ? 'Stored in your account and on this device'
+          : state === 'syncing'
+            ? 'Sending this plan to your account'
+            : state === 'error'
+              ? 'Saved here; sync will retry when the server is reachable'
+              : 'Saved on this device only — sign in to sync'
+      }
+    >
+      <Icon size={9} className={meta.spin ? 'animate-spin' : undefined} /> {meta.label}
+    </span>
+  )
+}
 
 function TripCard({ trip, onDelete }: { trip: TripPlan; onDelete: (trip: TripPlan) => void }) {
   const { duplicateTrip, setTripStatus, notify } = useApp()
@@ -64,7 +104,7 @@ function TripCard({ trip, onDelete }: { trip: TripPlan; onDelete: (trip: TripPla
             <Link to={`/itinerary/${trip.id}`} className="font-display text-lg leading-tight text-ink hover:text-pine">
               {trip.title}
             </Link>
-            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-ink-mute">
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-ink-mute">
               <span className="inline-flex items-center gap-1">
                 <MapPin size={9} /> {destination.district}
               </span>
@@ -79,13 +119,14 @@ function TripCard({ trip, onDelete }: { trip: TripPlan; onDelete: (trip: TripPla
           </div>
           <div className="text-right">
             <p className="text-sm font-medium text-ink">{npr(trip.costs.group)}</p>
-            <p className={cx('text-[10px]', trip.costs.remaining < 0 ? 'text-clay' : 'text-pine')}>
+            <p className={cx('text-[11px]', trip.costs.remaining < 0 ? 'text-clay' : 'text-pine')}>
               {trip.costs.remaining < 0 ? 'over budget' : `${npr(trip.costs.remaining)} spare`}
             </p>
           </div>
         </div>
 
-        <div className="mt-2 flex flex-wrap gap-1">
+        <div className="mt-2 flex flex-wrap items-center gap-1">
+          <SyncBadge state={trip.syncState} />
           <span className="chip">{trip.days} days</span>
           <span className="chip">{trip.route.label}</span>
           <span className="chip">
@@ -94,7 +135,7 @@ function TripCard({ trip, onDelete }: { trip: TripPlan; onDelete: (trip: TripPla
         </div>
 
         <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-3">
-          <Link to={`/itinerary/${trip.id}`} className="inline-flex items-center gap-1 rounded-full bg-pine px-3 py-1.5 text-[10px] font-medium text-paper">
+          <Link to={`/itinerary/${trip.id}`} className="inline-flex items-center gap-1 rounded-full bg-pine px-3 py-1.5 text-[11px] font-medium text-paper">
             Open plan <ArrowRight size={11} />
           </Link>
           <button
@@ -104,14 +145,14 @@ function TripCard({ trip, onDelete }: { trip: TripPlan; onDelete: (trip: TripPla
                 notify(ok ? 'Share link copied.' : 'Could not copy the link on this browser.'),
               )
             }}
-            className="inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1.5 text-[10px] text-ink-soft hover:border-pine-3"
+            className="inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1.5 text-[11px] text-ink-soft hover:border-pine-3"
           >
             <Share2 size={10} /> Share
           </button>
           <button
             type="button"
             onClick={() => duplicateTrip(trip.id)}
-            className="inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1.5 text-[10px] text-ink-soft hover:border-pine-3"
+            className="inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1.5 text-[11px] text-ink-soft hover:border-pine-3"
           >
             <Copy size={10} /> Duplicate
           </button>
@@ -119,7 +160,7 @@ function TripCard({ trip, onDelete }: { trip: TripPlan; onDelete: (trip: TripPla
             <button
               type="button"
               onClick={() => setTripStatus(trip.id, 'completed')}
-              className="inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1.5 text-[10px] text-ink-soft hover:border-pine-3"
+              className="inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1.5 text-[11px] text-ink-soft hover:border-pine-3"
             >
               <CheckCircle2 size={10} /> Complete
             </button>
@@ -127,7 +168,7 @@ function TripCard({ trip, onDelete }: { trip: TripPlan; onDelete: (trip: TripPla
             <button
               type="button"
               onClick={() => setTripStatus(trip.id, 'upcoming')}
-              className="inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1.5 text-[10px] text-ink-soft hover:border-pine-3"
+              className="inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1.5 text-[11px] text-ink-soft hover:border-pine-3"
             >
               Reopen
             </button>
@@ -147,7 +188,21 @@ function TripCard({ trip, onDelete }: { trip: TripPlan; onDelete: (trip: TripPla
 }
 
 export function MeroYatra() {
-  const { user, trips, wishlist, openAuth, deleteTrip, saveTrip, notify, prefs } = useApp()
+  const {
+    user,
+    trips,
+    wishlist,
+    openAuth,
+    deleteTrip,
+    saveTrip,
+    notify,
+    prefs,
+    wishlistSyncError,
+    retryWishlistSync,
+    authReady,
+  } = useApp()
+  /** Account trips and wishlist merge in after the session check, so wait rather than flash an empty tab. */
+  const showAccountSkeleton = useDelayedFlag(!authReady, 180)
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
   const initialTab = params.get('tab') as Tab | null
@@ -289,7 +344,7 @@ export function MeroYatra() {
               )}
             >
               {item.label}
-              <span className={cx('ml-1.5 rounded-full px-1.5 py-0.5 text-[9px]', tab === item.id ? 'bg-pine/10' : 'bg-paper-2')}>
+              <span className={cx('ml-1.5 rounded-full px-1.5 py-0.5 text-[11px]', tab === item.id ? 'bg-pine/10' : 'bg-paper-2')}>
                 {count}
               </span>
               {tab === item.id ? <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-pine" /> : null}
@@ -301,6 +356,20 @@ export function MeroYatra() {
       <p className="mt-3 text-[11px] text-ink-mute">{TABS.find((item) => item.id === tab)?.hint}</p>
 
       <div className="mt-4">
+        {tab === 'favorites' && wishlistSyncError ? (
+          <div
+            role="status"
+            className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-marigold/40 bg-marigold/10 px-4 py-3"
+          >
+            <p className="text-xs text-ink-soft">
+              <strong className="font-semibold text-ink">Saved on this device.</strong> {wishlistSyncError}
+            </p>
+            <button type="button" onClick={retryWishlistSync} className="btn-ghost shrink-0 py-2 text-xs">
+              Retry sync
+            </button>
+          </div>
+        ) : null}
+
         {tab === 'favorites' ? (
           favoriteDestinations.length === 0 ? (
             <EmptyState
@@ -313,10 +382,20 @@ export function MeroYatra() {
                 </Link>
               }
             />
+          ) : showAccountSkeleton && favoriteDestinations.length === 0 ? (
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3" aria-hidden="true">
+              {[0, 1, 2].map((item) => (
+                <DestinationCardSkeleton key={item} />
+              ))}
+            </div>
           ) : (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {favoriteDestinations.map((destination) => (
-                <DestinationCard key={destination.slug} destination={destination} />
+              {favoriteDestinations.map((destination, index) => (
+                <DestinationCard
+                  key={destination.slug}
+                  destination={destination}
+                  enterDelay={staggerDelay(index)}
+                />
               ))}
             </div>
           )
@@ -348,6 +427,12 @@ export function MeroYatra() {
               </div>
             }
           />
+        ) : showAccountSkeleton && filtered.length === 0 ? (
+          <div className="space-y-2.5" aria-hidden="true">
+            {[0, 1].map((item) => (
+              <TripCardSkeleton key={item} />
+            ))}
+          </div>
         ) : (
           <div className="space-y-2.5">
             {filtered.map((trip) => (
@@ -360,25 +445,25 @@ export function MeroYatra() {
       {tab === 'saved' && trips.length > 0 ? (
         <div className="mt-6 grid gap-3 sm:grid-cols-3">
           <Link to="/budget" className="rounded-2xl border border-line bg-white/50 p-4 transition hover:border-pine-3">
-            <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-mute">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
               <Layers size={11} /> Next step
             </p>
             <p className="mt-1.5 text-xs font-medium text-ink">Price another route</p>
-            <p className="mt-0.5 text-[10px] text-ink-mute">Use the standalone budget planner to compare options.</p>
+            <p className="mt-0.5 text-[11px] text-ink-mute">Use the standalone budget planner to compare options.</p>
           </Link>
           <Link to="/explore?gems=1" className="rounded-2xl border border-line bg-white/50 p-4 transition hover:border-pine-3">
-            <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-mute">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
               <MapPin size={11} /> Add a stop
             </p>
             <p className="mt-1.5 text-xs font-medium text-ink">Browse hidden gems</p>
-            <p className="mt-0.5 text-[10px] text-ink-mute">Quieter places that pair with your current plan.</p>
+            <p className="mt-0.5 text-[11px] text-ink-mute">Quieter places that pair with your current plan.</p>
           </Link>
           <Link to="/profile" className="rounded-2xl border border-line bg-white/50 p-4 transition hover:border-pine-3">
-            <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-mute">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
               <ArrowUpRight size={11} /> Your account
             </p>
             <p className="mt-1.5 text-xs font-medium text-ink">Travel statistics</p>
-            <p className="mt-0.5 text-[10px] text-ink-mute">Days on the road, provinces visited and spend.</p>
+            <p className="mt-0.5 text-[11px] text-ink-mute">Days on the road, provinces visited and spend.</p>
           </Link>
         </div>
       ) : null}

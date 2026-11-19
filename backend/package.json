@@ -4,12 +4,18 @@
   "private": true,
   "type": "module",
   "description": "PathYatra API — Express + Prisma (SQLite for local development)",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "scripts": {
     "dev": "nodemon",
-    "build": "tsc -p tsconfig.json",
-    "start": "node dist/server.js",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "prebuild": "npm run clean",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node --max-old-space-size=512 dist/server.js",
+    "test": "BCRYPT_ROUNDS=10 node --import tsx --test src/routes/auth.login.test.ts src/lib/__tests__/jwt.test.ts",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate": "bash ../scripts/pre-migrate-backup.sh && prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:seed": "prisma db seed",
     "seed:admin": "tsx prisma/seed-admin.ts"
@@ -19,13 +25,16 @@
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
+    "@sentry/node": "^11.14.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^18.0.10",
     "express": "^5.3.0",
     "express-rate-limit": "^8.7.3",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.5.0",
+    "pino": "^9.14.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {

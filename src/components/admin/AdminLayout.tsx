@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { ExternalLink, Menu } from 'lucide-react'
 import { AdminSidebar, ADMIN_NAV } from './AdminSidebar'
+import { PageSkeleton } from '../PageSkeleton'
+import { ErrorBoundary } from '../ErrorBoundary'
 import { useApp } from '../../context/AppContext'
 import { loadJSON, saveJSON } from '../../lib/storage'
 
@@ -69,15 +71,23 @@ export function AdminLayout() {
             <Link
               to="/"
               target="_blank"
+              rel="noopener noreferrer"
               className="hidden items-center gap-1.5 rounded-full border border-line bg-[#fffdf8] px-3 py-1.5 text-[11px] text-ink-soft hover:bg-paper-2 sm:inline-flex"
             >
               View site <ExternalLink size={11} />
             </Link>
             <div className="flex items-center gap-2 rounded-full border border-line bg-[#fffdf8] py-1 pl-1 pr-3">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-pine text-[10px] font-semibold text-paper">
+              {/* Decorative: the name beside it is what a screen reader should
+                  read. It stays in the accessibility tree at every width
+                  (sr-only, not display:none) so the chip is never an
+                  unexplained letter on a phone. */}
+              <span
+                aria-hidden="true"
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-pine text-[11px] font-semibold text-paper"
+              >
                 {(user?.name ?? 'A').slice(0, 1).toUpperCase()}
               </span>
-              <span className="hidden text-[11px] text-ink-soft sm:block">
+              <span className="sr-only text-[11px] text-ink-soft sm:not-sr-only">
                 {user?.name ?? 'Admin'}
               </span>
             </div>
@@ -85,7 +95,13 @@ export function AdminLayout() {
         </header>
 
         <main className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6 lg:py-8">
-          <Outlet />
+          <div key={location.pathname} className="route-enter">
+            <ErrorBoundary resetKey={location.pathname} scope="admin">
+              <Suspense fallback={<PageSkeleton label="Loading admin page" />}>
+                <Outlet />
+              </Suspense>
+            </ErrorBoundary>
+          </div>
         </main>
       </div>
     </div>

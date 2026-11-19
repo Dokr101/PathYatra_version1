@@ -89,8 +89,7 @@ export function AdminSettings() {
     return () => {
       active = false
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [api])
 
   useEffect(() => {
     if (!user) return
@@ -169,8 +168,9 @@ export function AdminSettings() {
     setSavingPassword(true)
     try {
       await api.settings.changePassword(passwords)
+      // The API bumps tokenVersion and re-issues the session cookie for this device.
       setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' })
-      success('Password changed. Keep using your current session; new sign-ins need the new password.')
+      success('Password changed. Every other session has been signed out.')
     } catch (reason) {
       setPasswordErrors(fieldErrors(reason))
       fail(reason)
@@ -275,7 +275,7 @@ export function AdminSettings() {
                         className="h-4 w-4 shrink-0 accent-pine"
                       />
                       <span className="min-w-0 flex-1 truncate">{destination.name}</span>
-                      <span className="shrink-0 text-[10px] uppercase text-ink-mute">
+                      <span className="shrink-0 text-[11px] uppercase text-ink-mute">
                         {destination.status.toLowerCase()}
                       </span>
                     </label>
@@ -346,7 +346,7 @@ export function AdminSettings() {
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-mute">
+                <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
                   New password <span className="ml-1 text-saffron">*</span>
                 </span>
                 <div className="relative">

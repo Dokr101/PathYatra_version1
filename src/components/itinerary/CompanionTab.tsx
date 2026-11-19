@@ -53,25 +53,25 @@ export function CompanionTab({ plan, destination }: { plan: TripPlan; destinatio
       {/* Countdown */}
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-line bg-white/60 p-4">
-          <p className="text-[10px] uppercase tracking-[0.14em] text-ink-mute">
+          <p className="text-[11px] uppercase tracking-[0.08em] text-ink-mute">
             {departure > 0 ? 'Departs in' : departure === 0 ? 'Departs' : 'Trip started'}
           </p>
           <p className="mt-1 font-display text-2xl leading-none text-ink">
             {departure > 0 ? `${departure} days` : departure === 0 ? 'today' : `${Math.abs(departure)} days ago`}
           </p>
-          <p className="mt-1 text-[10px] text-ink-mute">{formatDateRange(plan.startDate, plan.days)}</p>
+          <p className="mt-1 text-[11px] text-ink-mute">{formatDateRange(plan.startDate, plan.days)}</p>
         </div>
         <div className="rounded-2xl border border-line bg-white/60 p-4">
-          <p className="text-[10px] uppercase tracking-[0.14em] text-ink-mute">Checklist</p>
+          <p className="text-[11px] uppercase tracking-[0.08em] text-ink-mute">Checklist</p>
           <p className="mt-1 font-display text-2xl leading-none text-ink">{progress}%</p>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-paper-2">
             <div className="h-full rounded-full bg-pine-3 transition-all" style={{ width: `${progress}%` }} />
           </div>
         </div>
         <div className="rounded-2xl border border-line bg-white/60 p-4">
-          <p className="text-[10px] uppercase tracking-[0.14em] text-ink-mute">Tracked spending</p>
+          <p className="text-[11px] uppercase tracking-[0.08em] text-ink-mute">Tracked spending</p>
           <p className="mt-1 font-display text-2xl leading-none text-ink">{npr(totalSpent)}</p>
-          <p className="mt-1 text-[10px] text-ink-mute">{tripExpenses.length} logged expenses</p>
+          <p className="mt-1 text-[11px] text-ink-mute">{tripExpenses.length} logged expenses</p>
         </div>
       </div>
 
@@ -179,7 +179,7 @@ export function CompanionTab({ plan, destination }: { plan: TripPlan; destinatio
                 <div key={expense.id} className="flex items-center justify-between gap-2 rounded-lg border border-line/70 px-2.5 py-2">
                   <div className="min-w-0">
                     <p className="truncate text-[11px] font-medium text-ink">{expense.title}</p>
-                    <p className="text-[9px] text-ink-mute">
+                    <p className="text-[11px] text-ink-mute">
                       Traveller {expense.paidBy + 1} paid · split {expense.sharedBy}
                     </p>
                   </div>
@@ -198,17 +198,17 @@ export function CompanionTab({ plan, destination }: { plan: TripPlan; destinatio
               ))}
             </div>
           ) : (
-            <p className="mt-3 text-[10px] leading-relaxed text-ink-mute">
+            <p className="mt-3 text-[11px] leading-relaxed text-ink-mute">
               No expenses yet. Log what you actually spend and PathYatra will work out who owes whom.
             </p>
           )}
 
           {tripExpenses.length > 0 ? (
             <div className="mt-3 rounded-xl bg-paper-2/60 p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-ink-mute">Balances</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">Balances</p>
               <div className="mt-1.5 space-y-1">
                 {balances.map((balance, index) => (
-                  <div key={index} className="flex items-center justify-between text-[10px]">
+                  <div key={index} className="flex items-center justify-between text-[11px]">
                     <span className="text-ink-mute">Traveller {index + 1}</span>
                     <span className={balance >= 0 ? 'text-pine' : 'text-clay'}>
                       {balance >= 0 ? `is owed ${npr(balance)}` : `owes ${npr(Math.abs(balance))}`}
@@ -216,7 +216,7 @@ export function CompanionTab({ plan, destination }: { plan: TripPlan; destinatio
                   </div>
                 ))}
               </div>
-              <p className="mt-1.5 flex items-center gap-1 text-[9px] text-ink-mute">
+              <p className="mt-1.5 flex items-center gap-1 text-[11px] text-ink-mute">
                 <Wallet size={9} /> Assumes equal splitting among the first selected travellers.
               </p>
             </div>
@@ -241,7 +241,7 @@ export function CompanionTab({ plan, destination }: { plan: TripPlan; destinatio
                 <p className="text-[11px] font-medium text-ink">{advisory.title}</p>
                 <span
                   className={cx(
-                    'rounded-full px-2 py-0.5 text-[9px] font-medium uppercase tracking-wide',
+                    'rounded-full px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide',
                     advisory.confidence === 'confirmed'
                       ? 'bg-pine/10 text-pine'
                       : advisory.confidence === 'reported'
@@ -252,14 +252,14 @@ export function CompanionTab({ plan, destination }: { plan: TripPlan; destinatio
                   {advisory.confidence}
                 </span>
               </div>
-              <p className="mt-1 text-[10px] leading-relaxed text-ink-soft">{advisory.body}</p>
-              <p className="mt-1 text-[9px] text-ink-mute">
+              <p className="mt-1 text-[11px] leading-relaxed text-ink-soft">{advisory.body}</p>
+              <p className="mt-1 text-[11px] text-ink-mute">
                 {advisory.area} · updated {advisory.updated}
               </p>
             </div>
           ))}
         </div>
-        <p className="mt-2 text-[9px] leading-relaxed text-ink-mute">
+        <p className="mt-2 text-[11px] leading-relaxed text-ink-mute">
           The advisory feed in this build is illustrative. Check the Department of Roads, Nepal Tourism Board and local
           operators before travelling.
         </p>
@@ -275,14 +275,14 @@ export function CompanionTab({ plan, destination }: { plan: TripPlan; destinatio
               <div key={guide.id} className="rounded-xl border border-line/80 px-3 py-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-[11px] font-medium text-ink">{guide.name}</p>
-                  <span className="text-[10px] text-ink-soft">{npr(guide.dayRate)} / day</span>
+                  <span className="text-[11px] text-ink-soft">{npr(guide.dayRate)} / day</span>
                 </div>
-                <p className="text-[9px] text-ink-mute">
+                <p className="text-[11px] text-ink-mute">
                   {guide.base} · {guide.languages.join(', ')} · {guide.rating.toFixed(1)}★ ({guide.trips} trips)
                 </p>
                 <div className="mt-1 flex flex-wrap gap-1">
                   {guide.specialities.slice(0, 2).map((speciality) => (
-                    <span key={speciality} className="rounded-full bg-paper-2 px-2 py-0.5 text-[9px] text-ink-soft">
+                    <span key={speciality} className="rounded-full bg-paper-2 px-2 py-0.5 text-[11px] text-ink-soft">
                       {speciality}
                     </span>
                   ))}
@@ -290,7 +290,7 @@ export function CompanionTab({ plan, destination }: { plan: TripPlan; destinatio
               </div>
             ))}
           </div>
-          <p className="mt-2 text-[9px] leading-relaxed text-ink-mute">
+          <p className="mt-2 text-[11px] leading-relaxed text-ink-mute">
             Illustrative directory. Verify licensing and insurance with the Nepal Tourism Board before booking.
           </p>
         </section>
@@ -303,20 +303,20 @@ export function CompanionTab({ plan, destination }: { plan: TripPlan; destinatio
           <div className="mt-3 grid grid-cols-2 gap-2">
             {EMERGENCY.map((contact) => (
               <div key={contact.label} className="rounded-xl border border-line/80 px-2.5 py-2">
-                <p className="text-[9px] uppercase tracking-[0.08em] text-ink-mute">{contact.label}</p>
+                <p className="text-[11px] uppercase tracking-[0.08em] text-ink-mute">{contact.label}</p>
                 <p className="mt-0.5 text-[13px] font-medium text-ink">{contact.number}</p>
               </div>
             ))}
           </div>
           <div className="mt-3 space-y-1.5">
             {plan.notes.slice(0, 4).map((note) => (
-              <p key={note.slice(0, 20)} className="flex items-start gap-1.5 text-[10px] leading-relaxed text-ink-soft">
+              <p key={note.slice(0, 20)} className="flex items-start gap-1.5 text-[11px] leading-relaxed text-ink-soft">
                 <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-marigold" />
                 {note}
               </p>
             ))}
           </div>
-          <Link to="/help" className="mt-3 inline-flex items-center gap-1 text-[10px] font-medium text-pine">
+          <Link to="/help" className="mt-3 inline-flex items-center gap-1 text-[11px] font-medium text-pine">
             Help & support <ArrowRight size={11} />
           </Link>
         </section>

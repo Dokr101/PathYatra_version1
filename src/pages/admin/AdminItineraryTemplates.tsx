@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   Archive,
@@ -46,7 +46,7 @@ import {
   TextInput,
   UpdatedCell,
 } from '../../components/admin/AdminUI'
-import { currency, formatDate } from '../../lib/adminFormat'
+import { formatDate, npr } from '../../lib/adminFormat'
 
 type LocalStop = {
   timeSlot: string
@@ -142,20 +142,19 @@ function TemplateList() {
       .list({ pageSize: 100, sort: 'name', order: 'asc' })
       .then((result) => setDestinations(result.items))
       .catch(() => undefined)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [api])
 
   useEffect(() => setPage(1), [debouncedQuery, status, destinationId])
 
   const { data, loading, error, reload } = usePagedList(
-    () =>
+    (signal) =>
       api.itineraries.list({
         q: debouncedQuery,
         status,
         destinationId,
         page,
         pageSize: 20,
-      }),
+      }, signal),
     [debouncedQuery, status, destinationId, page],
   )
 
@@ -283,7 +282,7 @@ function TemplateList() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[820px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-line bg-paper-2/50 text-[10px] uppercase tracking-[0.12em] text-ink-mute">
+                  <tr className="border-b border-line bg-paper-2/50 text-[11px] uppercase tracking-[0.08em] text-ink-mute">
                     <th className="px-4 py-3 font-semibold">Template</th>
                     <th className="px-3 py-3 font-semibold">Destination</th>
                     <th className="px-3 py-3 font-semibold">Days</th>
@@ -309,7 +308,7 @@ function TemplateList() {
                       </td>
                       <td className="px-3 py-3 text-xs">{template.days.length}</td>
                       <td className="px-3 py-3 text-xs text-ink-soft">
-                        {currency(template.estimatedCost)}
+                        {npr(template.estimatedCost)}
                       </td>
                       <td className="px-3 py-3">
                         <StatusBadge status={template.status} />
@@ -512,15 +511,14 @@ function TemplateEditor({ id }: { id: string }) {
       .list({ pageSize: 100, sort: 'name', order: 'asc' })
       .then((result) => setDestinations(result.items))
       .catch(() => undefined)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [api])
 
-  const hydrate = (data: AdminTemplate) => {
+  const hydrate = useCallback((data: AdminTemplate) => {
     setTemplate(data)
     setMeta(toMeta(data))
     setDays(toDays(data))
     setDirtyDays(false)
-  }
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -539,8 +537,7 @@ function TemplateEditor({ id }: { id: string }) {
     return () => {
       active = false
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
+  }, [api, hydrate, id])
 
   const saveMeta = async (statusOverride?: ContentStatus) => {
     if (!template) return
@@ -832,7 +829,7 @@ function TemplateEditor({ id }: { id: string }) {
             actions={
               <div className="flex items-center gap-2">
                 {dirtyDays ? (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-saffron">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-saffron">
                     Unsaved plan
                   </span>
                 ) : null}
@@ -852,7 +849,7 @@ function TemplateEditor({ id }: { id: string }) {
               {days.map((day, dayIndex) => (
                 <section key={dayIndex} className="rounded-xl border border-line bg-paper/40">
                   <header className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2.5">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-pine text-[10px] font-semibold text-paper">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-pine text-[11px] font-semibold text-paper">
                       {dayIndex + 1}
                     </span>
                     <TextInput
@@ -1021,7 +1018,7 @@ function TemplateEditor({ id }: { id: string }) {
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-ink-mute">Estimated cost</dt>
-                <dd className="font-medium">{currency(template.estimatedCost)}</dd>
+                <dd className="font-medium">{npr(template.estimatedCost)}</dd>
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-ink-mute">Destination</dt>
@@ -1051,7 +1048,7 @@ function TemplateEditor({ id }: { id: string }) {
             {template.difficulty ? <span className="chip">{template.difficulty}</span> : null}
             <span className="chip">{days.length} days</span>
             {template.estimatedCost !== null ? (
-              <span className="chip">{currency(template.estimatedCost)} estimate</span>
+              <span className="chip">{npr(template.estimatedCost)} estimate</span>
             ) : null}
           </div>
           {template.summary ? (
@@ -1075,7 +1072,7 @@ function TemplateEditor({ id }: { id: string }) {
                           {stop.title || 'Untitled stop'}
                         </span>
                         {stop.estimatedCost ? (
-                          <span className="text-ink-mute"> · {currency(Number(stop.estimatedCost))} estimate</span>
+                          <span className="text-ink-mute"> · {npr(Number(stop.estimatedCost))} estimate</span>
                         ) : null}
                         {stop.description ? (
                           <span className="block text-[11px] text-ink-soft">{stop.description}</span>

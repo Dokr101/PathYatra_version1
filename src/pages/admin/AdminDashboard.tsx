@@ -71,8 +71,7 @@ export function AdminDashboard() {
     return () => {
       active = false
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [api])
 
   const attentionCount =
     (data?.attention.drafts.length ?? 0) +
@@ -110,7 +109,7 @@ export function AdminDashboard() {
             {CARD_DEFS.map((card) => (
               <div key={card.key} className="rounded-2xl border border-line bg-[#fffdf8] px-4 py-4">
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-mute">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
                     {card.label}
                   </p>
                   <card.icon size={15} className="text-pine-3" strokeWidth={1.7} />
@@ -142,7 +141,7 @@ export function AdminDashboard() {
                   {data.attention.drafts.length > 0 ? (
                     <section>
                       <div className="mb-2 flex items-center justify-between">
-                        <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-mute">
+                        <h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
                           Draft destinations
                         </h3>
                         <Link
@@ -176,7 +175,7 @@ export function AdminDashboard() {
                   {data.attention.pendingReviews.length > 0 ? (
                     <section>
                       <div className="mb-2 flex items-center justify-between">
-                        <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-mute">
+                        <h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
                           Reviews awaiting moderation
                         </h3>
                         <Link
@@ -209,7 +208,7 @@ export function AdminDashboard() {
                   {data.attention.missingCovers.length > 0 ? (
                     <section>
                       <div className="mb-2 flex items-center justify-between">
-                        <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-mute">
+                        <h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-mute">
                           Published without a cover image
                         </h3>
                         <Link to="/admin/media" className="text-[11px] text-pine hover:underline">
