@@ -25,6 +25,7 @@ import type { TripPlan, TripSyncState } from '../types'
 import { useApp } from '../context/AppContext'
 import { getDestination } from '../data/destinations'
 import { ORIGINS } from '../data/taxonomy'
+import { resolveOrigin } from '../lib/geolocation'
 import { generateTrip } from '../lib/itinerary'
 import { copyText, shareLink } from '../lib/share'
 import { addDays, cx, formatDateRange, npr, todayISO } from '../lib/format'
@@ -82,7 +83,7 @@ function SyncBadge({ state = 'local' }: { state?: TripSyncState }) {
 function TripCard({ trip, onDelete }: { trip: TripPlan; onDelete: (trip: TripPlan) => void }) {
   const { duplicateTrip, setTripStatus, notify } = useApp()
   const destination = getDestination(trip.destinationSlug)
-  const origin = ORIGINS.find((item) => item.id === trip.originId)
+  const origin = resolveOrigin(trip.originId, trip.originLabel, trip.originLat, trip.originLng)
 
   if (!destination) return null
 

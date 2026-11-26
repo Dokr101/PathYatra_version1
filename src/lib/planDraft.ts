@@ -13,6 +13,10 @@ export const PLAN_DRAFT_KEY = 'pathyatra.planDraft'
 export interface PlanDraft {
   destinationSlug: string
   originId: string
+  /** Present only while originId is the synthetic GPS origin. */
+  originLabel?: string
+  originLat?: number
+  originLng?: number
   startDate: string
   days: number
   travelers: number

@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { ArrowRight, CalendarDays, MapPin, Printer, Users, Wallet } from 'lucide-react'
 import { decodePlan } from '../lib/share'
 import { getDestination } from '../data/destinations'
-import { ORIGINS } from '../data/taxonomy'
+import { resolveOrigin } from '../lib/geolocation'
 import { formatDate, formatDateRange, npr } from '../lib/format'
 import { DestinationImage } from '../components/DestinationImage'
 import { EmptyState, Notice, Pill } from '../components/ui'
@@ -12,7 +12,7 @@ export function SharedItinerary() {
   const location = useLocation()
   const plan = useMemo(() => decodePlan(location.hash.replace(/^#/, '')), [location.hash])
   const destination = plan ? getDestination(plan.destinationSlug) : undefined
-  const origin = plan ? ORIGINS.find((item) => item.id === plan.originId) : undefined
+  const origin = plan ? resolveOrigin(plan.originId, plan.originLabel, plan.originLat, plan.originLng) : undefined
 
   if (!plan || !destination) {
     return (

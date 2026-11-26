@@ -1,10 +1,14 @@
 import type { Accommodation, CostBreakdown, RouteType, TripDay, TripPlan } from '../types'
+import { MY_LOCATION_ID } from './geolocation'
 
 export interface SharedPlan {
   v: 1
   title: string
   destinationSlug: string
   originId: string
+  originLabel?: string
+  originLat?: number
+  originLng?: number
   startDate: string
   days: number
   travelers: number
@@ -39,6 +43,9 @@ export function encodePlan(plan: TripPlan): string {
     title: plan.title,
     destinationSlug: plan.destinationSlug,
     originId: plan.originId,
+    ...(plan.originId === MY_LOCATION_ID
+      ? { originLabel: plan.originLabel, originLat: plan.originLat, originLng: plan.originLng }
+      : {}),
     startDate: plan.startDate,
     days: plan.days,
     travelers: plan.travelers,

@@ -19,6 +19,7 @@ import {
 import logoMark from '../../assets/logo-mark.png'
 import { useApp } from '../../context/AppContext'
 import { cx } from '../../lib/adminFormat'
+import { Modal } from '../ui'
 
 export const ADMIN_NAV = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -51,6 +52,7 @@ export function AdminSidebar({
   const { user, signOut } = useApp()
   const navigate = useNavigate()
   const [hovered, setHovered] = useState(false)
+  const [confirmLogout, setConfirmLogout] = useState(false)
   const compact = collapsed && !hovered
   const toggleLabel = open ? 'Close navigation' : collapsed ? 'Expand navigation' : 'Collapse navigation'
 
@@ -61,6 +63,7 @@ export function AdminSidebar({
   }
 
   const logout = () => {
+    setConfirmLogout(false)
     signOut()
     onClose()
     navigate('/')
@@ -172,7 +175,7 @@ export function AdminSidebar({
           </div>
           <button
             type="button"
-            onClick={logout}
+            onClick={() => setConfirmLogout(true)}
             className={cx(
               'flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-[13px] text-ink-soft transition-colors hover:bg-[#ebdfc9] hover:text-ink',
               compact && 'lg:justify-center lg:gap-0 lg:px-0',
@@ -184,6 +187,31 @@ export function AdminSidebar({
           </button>
         </div>
       </aside>
+
+      <Modal
+        open={confirmLogout}
+        onClose={() => setConfirmLogout(false)}
+        title="Log out of the admin panel?"
+        description="Are you sure you want to log out?"
+        footer={
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setConfirmLogout(false)} className="btn-ghost">
+              Stay signed in
+            </button>
+            <button
+              type="button"
+              onClick={logout}
+              className="inline-flex items-center gap-1.5 rounded-full bg-clay px-5 py-2.5 text-xs font-medium text-white"
+            >
+              <LogOut size={13} /> Log out
+            </button>
+          </div>
+        }
+      >
+        <p className="text-sm leading-relaxed text-ink-soft">
+          You will need your administrator credentials to sign back in.
+        </p>
+      </Modal>
     </>
   )
 }

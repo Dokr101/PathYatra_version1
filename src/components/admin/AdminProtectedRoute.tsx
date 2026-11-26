@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { ShieldX } from 'lucide-react'
@@ -13,6 +14,17 @@ import { Skeleton } from '../ui'
 export function AdminProtectedRoute({ children }: { children: ReactNode }) {
   const { user, authReady } = useApp()
   const location = useLocation()
+
+  /**
+   * Signing out clears `user` while this route is still mounted, so without a
+   * memory of the session we would send an admin who just logged out to
+   * /admin/login — the screen meant for visitors who never signed in. Remember
+   * that a session existed, and treat the loss of it as a logout.
+   */
+  const [hadSession, setHadSession] = useState(false)
+  useEffect(() => {
+    if (user) setHadSession(true)
+  }, [user])
 
   if (!authReady) {
     return (
@@ -39,6 +51,7 @@ export function AdminProtectedRoute({ children }: { children: ReactNode }) {
   const allowed = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN'
 
   if (!allowed) {
+    if (hadSession && !user) return <Navigate to="/" replace />
     return (
       <Navigate
         to="/admin/login"

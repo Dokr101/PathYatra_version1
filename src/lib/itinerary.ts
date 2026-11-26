@@ -14,6 +14,7 @@ import type {
 import { addDays, formatDate, monthIndex, shortName, todayISO } from './format'
 import { buildRouteOptions, hoursLabel } from './route'
 import { buildCostBreakdown } from './pricing'
+import { MY_LOCATION_ID, approximateCoordinate } from './geolocation'
 import { MONTHS, SEASONS } from '../data/taxonomy'
 
 export interface PlanDraft {
@@ -336,6 +337,13 @@ export function generateTrip(draft: PlanDraft): TripPlan {
     createdAt: new Date().toISOString(),
     destinationSlug: destination.slug,
     originId: origin.id,
+    ...(origin.id === MY_LOCATION_ID
+      ? {
+          originLabel: origin.name,
+          originLat: approximateCoordinate(origin.lat),
+          originLng: approximateCoordinate(origin.lng),
+        }
+      : {}),
     startDate: draft.startDate || todayISO(),
     days,
     travelers,

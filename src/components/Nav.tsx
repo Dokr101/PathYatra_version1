@@ -21,6 +21,7 @@ import { useApp } from '../context/AppContext'
 import { cx } from '../lib/format'
 import { DestinationImage } from './DestinationImage'
 import { CATEGORY_MAP } from '../data/destinations'
+import { Modal } from './ui'
 
 const LINKS = [
   { to: '/explore', label: 'Explore Nepal', icon: Compass },
@@ -48,6 +49,7 @@ export function TravellerSidebar({
   const [searchMounted, setSearchMounted] = useState(false)
   const [searchClosing, setSearchClosing] = useState(false)
   const [hovered, setHovered] = useState(false)
+  const [confirmLogout, setConfirmLogout] = useState(false)
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
@@ -111,6 +113,7 @@ export function TravellerSidebar({
   const results = query.trim() ? searchDestinations(query).slice(0, 6) : searchDestinations('').slice(0, 4)
 
   const logout = () => {
+    setConfirmLogout(false)
     signOut()
     onClose()
     navigate('/')
@@ -320,7 +323,7 @@ export function TravellerSidebar({
               </div>
               <button
                 type="button"
-                onClick={logout}
+                onClick={() => setConfirmLogout(true)}
                 className={cx(
                   'flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-[13px] text-ink-soft transition-colors hover:bg-[#ebdfc9] hover:text-ink',
                   compact && 'lg:justify-center lg:gap-0 lg:px-0',
@@ -429,6 +432,32 @@ export function TravellerSidebar({
           </div>
         </div>
       ) : null}
+
+      <Modal
+        open={confirmLogout}
+        onClose={() => setConfirmLogout(false)}
+        title="Log out of PathYatra?"
+        description="Are you sure you want to log out?"
+        footer={
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setConfirmLogout(false)} className="btn-ghost">
+              Stay signed in
+            </button>
+            <button
+              type="button"
+              onClick={logout}
+              className="inline-flex items-center gap-1.5 rounded-full bg-clay px-5 py-2.5 text-xs font-medium text-white"
+            >
+              <LogOut size={13} /> Log out
+            </button>
+          </div>
+        }
+      >
+        <p className="text-sm leading-relaxed text-ink-soft">
+          Your trips, wishlist and drafts stay in this browser, so you can sign back in whenever you
+          are ready.
+        </p>
+      </Modal>
     </>
   )
 }

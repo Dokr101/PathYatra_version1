@@ -110,6 +110,19 @@ export function AuthModal() {
       const next = safeInternalPath(authRequest?.next)
       const nextPathname = next ? new URL(next, window.location.origin).pathname : ''
       const nextIsAdmin = nextPathname === '/admin' || nextPathname.startsWith('/admin/')
+      /**
+       * Where a traveller lands after signing in. A page that opened the dialog
+       * for a reason (wishlist, trip, profile) passes `next`; without one — the
+       * landing-page header, for example — they go straight to Explore Nepal
+       * instead of being left on the marketing page. Any other guest page they
+       * were already reading is kept so signing in never loses their place.
+       */
+      const travellerTarget =
+        next && !nextIsAdmin && nextPathname !== '/'
+          ? next
+          : window.location.pathname === '/'
+            ? '/explore'
+            : `${window.location.pathname}${window.location.search}${window.location.hash}`
 
       notify(
         isAdmin
@@ -122,8 +135,8 @@ export function AuthModal() {
 
       if (isAdmin) {
         navigate(next?.startsWith('/admin/') || next === '/admin' ? next : '/admin', { replace: true })
-      } else if (next && !nextIsAdmin) {
-        navigate(next, { replace: true })
+      } else {
+        navigate(travellerTarget, { replace: true })
       }
     } catch (submitError) {
       setError(

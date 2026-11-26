@@ -320,10 +320,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
       profile: User,
       password: string,
     ): Promise<{ ok: boolean; error?: string; fields?: Record<string, string> }> => {
-      const fullName = profile.name.trim()
+      // One space between words, so the stored name never carries stray gaps.
+      const fullName = profile.name.trim().replace(/\s+/g, ' ')
       const clean = profile.email.trim().toLowerCase()
       if (fullName.length < 2) {
         return { ok: false, error: 'Check the highlighted field.', fields: { fullName: 'Enter your full name.' } }
+      }
+      if (fullName.length > 80) {
+        return {
+          ok: false,
+          error: 'Check the highlighted field.',
+          fields: { fullName: 'Name must be 80 characters or fewer.' },
+        }
+      }
+      // A person's name has letters (in any script), spaces, hyphens, apostrophes
+      // and the occasional full stop — never digits or other symbols.
+      if (!/^[\p{L}\p{M}][\p{L}\p{M} .,'’-]*$/u.test(fullName)) {
+        return {
+          ok: false,
+          error: 'Check the highlighted field.',
+          fields: { fullName: 'Use letters only — no numbers or symbols in your name.' },
+        }
       }
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(clean)) {
         return { ok: false, error: 'Check the highlighted field.', fields: { email: 'Enter a valid email address.' } }

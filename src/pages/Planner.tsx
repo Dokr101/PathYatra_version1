@@ -5,6 +5,8 @@ import {
   ArrowRight,
   Check,
   Compass,
+  Crosshair,
+  Loader2,
   MapPin,
   Route,
   Sparkles,
@@ -27,6 +29,15 @@ import { generateTrip } from '../lib/itinerary'
 import { DayCardSkeleton } from '../components/CardSkeletons'
 import { loadPlanDraft, savePlanDraft, type PlanDraft } from '../lib/planDraft'
 import { buildRouteOptions, hoursLabel } from '../lib/route'
+import { useGeolocation } from '../lib/useGeolocation'
+import {
+  MY_LOCATION_ID,
+  MY_LOCATION_NAME,
+  approximateCoordinate,
+  coordinateLabel,
+  myLocationOrigin,
+  resolveOrigin,
+} from '../lib/geolocation'
 import { buildCostBreakdown, VERDICT_COPY } from '../lib/pricing'
 import {
   addDays,
@@ -94,7 +105,28 @@ export function Planner() {
     getDestination(requestedDestination ?? savedDraft?.destinationSlug ?? undefined) ?? DESTINATIONS[0]
   const [destinationSlug, setDestinationSlug] = useState(preset.slug)
   const destination = getDestination(destinationSlug) ?? DESTINATIONS[0]
-  const [originId, setOriginId] = useState(restored?.originId ?? prefs.startPoint)
+  // A GPS origin restored from the draft is rebuilt from its saved coordinates;
+  // without them the draft falls back to the traveller's usual starting city.
+  const restoredFix =
+    restored !== null &&
+    restored.originId === MY_LOCATION_ID &&
+    typeof restored.originLat === 'number' &&
+    typeof restored.originLng === 'number' &&
+    Number.isFinite(restored.originLat) &&
+    Number.isFinite(restored.originLng)
+      ? { lat: restored.originLat, lng: restored.originLng, label: restored.originLabel ?? MY_LOCATION_NAME }
+      : null
+  const [originId, setOriginId] = useState(
+    restored?.originId === MY_LOCATION_ID && !restoredFix
+      ? prefs.startPoint
+      : (restored?.originId ?? prefs.startPoint),
+  )
+  const [myLocation, setMyLocation] = useState<{
+    lat: number
+    lng: number
+    label: string
+    accuracyMeters?: number
+  } | null>(restoredFix)
   const [startDate, setStartDate] = useState(restored?.startDate ?? addDays(todayISO(), 14))
   const [days, setDays] = useState(restored?.days ?? suggestedDays(preset))
   const [travelers, setTravelers] = useState(restored?.travelers ?? 2)
@@ -120,7 +152,35 @@ export function Planner() {
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const origin = ORIGINS.find((item) => item.id === originId) ?? ORIGINS[0]
+  const { fix: geoFix, request: requestLocation, reset: resetLocation } = useGeolocation()
+  const origin: Origin =
+    originId === MY_LOCATION_ID && myLocation
+      ? myLocationOrigin(myLocation.lat, myLocation.lng, myLocation.label)
+      : resolveOrigin(originId) ?? ORIGINS[0]
+  const locating = geoFix.status === 'requesting'
+
+  /** One tap, one fix. The coordinates stay in this tab's draft, never in prefs. */
+  const locateMe = async () => {
+    const next = await requestLocation()
+    if (next.status !== 'success' || typeof next.lat !== 'number' || typeof next.lng !== 'number') return
+    setMyLocation({
+      lat: next.lat,
+      lng: next.lng,
+      label: next.label ?? MY_LOCATION_NAME,
+      accuracyMeters: next.accuracyMeters,
+    })
+    setOriginId(MY_LOCATION_ID)
+  }
+
+  const chooseOrigin = (value: string) => {
+    if (value !== MY_LOCATION_ID) {
+      // A picked city replaces the GPS point, so no stale fix lingers in the draft.
+      setMyLocation(null)
+      resetLocation()
+    }
+    setOriginId(value)
+  }
+
   const routes = useMemo(
     () => buildRouteOptions(destination, origin, travelers, transport),
     [destination, origin, travelers, transport],
@@ -145,6 +205,13 @@ export function Planner() {
     () => ({
       destinationSlug,
       originId,
+      ...(originId === MY_LOCATION_ID && myLocation
+        ? {
+            originLabel: myLocation.label,
+            originLat: approximateCoordinate(myLocation.lat),
+            originLng: approximateCoordinate(myLocation.lng),
+          }
+        : {}),
       startDate,
       days,
       travelers,
@@ -163,6 +230,7 @@ export function Planner() {
       days,
       destinationSlug,
       interests,
+      myLocation,
       originId,
       pace,
       routeType,
@@ -336,16 +404,53 @@ export function Planner() {
                 </label>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="block">
-                    <span className="field-label">Starting point</span>
-                    <select className="field" value={originId} onChange={(event) => setOriginId(event.target.value)}>
+                  <div className="block">
+                    <label className="field-label" htmlFor="planner-origin">
+                      Starting point
+                    </label>
+                    <select
+                      id="planner-origin"
+                      className="field"
+                      value={originId}
+                      onChange={(event) => chooseOrigin(event.target.value)}
+                    >
+                      {myLocation ? <option value={MY_LOCATION_ID}>{MY_LOCATION_NAME}</option> : null}
                       {ORIGINS.map((item) => (
                         <option key={item.id} value={item.id}>
                           {item.name}
                         </option>
                       ))}
                     </select>
-                  </label>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                      <button
+                        type="button"
+                        onClick={() => void locateMe()}
+                        disabled={locating}
+                        aria-describedby="planner-origin-hint"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1 text-[11px] font-medium text-ink-soft transition hover:border-pine-3 hover:text-pine disabled:opacity-60"
+                      >
+                        {locating ? <Loader2 size={11} className="animate-spin" /> : <Crosshair size={11} />}
+                        {locating ? 'Locating…' : 'Use my location'}
+                      </button>
+                      <span id="planner-origin-hint" className="text-[11px] leading-snug text-ink-mute">
+                        {myLocation
+                          ? `GPS point · ${coordinateLabel(myLocation.lat, myLocation.lng)}${
+                              myLocation.accuracyMeters ? ` · ±${myLocation.accuracyMeters} m` : ''
+                            } · this plan only`
+                          : locating
+                            ? 'Waiting for your browser’s permission.'
+                            : 'Or pick a city from the list.'}
+                      </span>
+                      <span role="status" aria-live="polite" className="sr-only">
+                        {locating ? 'Finding your location' : ''}
+                      </span>
+                    </div>
+                    {geoFix.status === 'error' && geoFix.errorMessage ? (
+                      <div className="mt-2">
+                        <Notice tone="warn">{geoFix.errorMessage}</Notice>
+                      </div>
+                    ) : null}
+                  </div>
                   <label className="block">
                     <span className="field-label">Start date</span>
                     <input
@@ -599,6 +704,12 @@ export function Planner() {
                     )
                   })}
                 </div>
+                {origin.id === MY_LOCATION_ID ? (
+                  <Notice>
+                    Routing from your GPS point uses the road model only. Flights are offered from Kathmandu, Pokhara
+                    and Lumbini, so the fastest option here is overland.
+                  </Notice>
+                ) : null}
                 <Notice tone="warn">
                   Distances and drive times are modelled from coordinates and road class, not live traffic. Roads in
                   Nepal change with weather. Check conditions before departure.

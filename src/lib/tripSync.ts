@@ -1,5 +1,6 @@
 import type { ApiItinerary } from './api'
 import { addDays } from './format'
+import { MY_LOCATION_ID, MY_LOCATION_NAME } from './geolocation'
 import type { PlanStage, TripBlock, TripDay, TripPlan } from '../types'
 
 const STATUS: Record<string, PlanStage> = {
@@ -33,7 +34,11 @@ export function planToItineraryBody(plan: TripPlan) {
   return {
     destinationSlug: plan.destinationSlug,
     title: clip(plan.title || 'Nepal itinerary', 140),
-    startingPoint: clip(plan.originId, 140),
+    // A GPS origin has no city id worth reading in a raw column, so store its label.
+    startingPoint: clip(
+      plan.originId === MY_LOCATION_ID ? plan.originLabel?.trim() || MY_LOCATION_NAME : plan.originId,
+      140,
+    ),
     startDate: plan.startDate,
     endDate: addDays(plan.startDate, Math.max(1, plan.days) - 1),
     numTravelers: plan.travelers,

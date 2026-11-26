@@ -10,7 +10,13 @@ export const registerSchema = z.object({
     .string()
     .trim()
     .min(2, 'Enter your full name')
-    .max(80, 'Name must be 80 characters or fewer'),
+    .max(80, 'Name must be 80 characters or fewer')
+    // Letters in any script, spaces, hyphens, apostrophes, commas and full
+    // stops. Digits and other symbols are rejected, not silently stripped.
+    .regex(
+      /^[\p{L}\p{M}][\p{L}\p{M} .,'’-]*$/u,
+      'Use letters only — no numbers or symbols in your name',
+    ),
   email: emailField,
   password: z
     .string()

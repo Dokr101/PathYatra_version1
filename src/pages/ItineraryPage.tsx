@@ -23,6 +23,7 @@ import {
 import { useApp } from '../context/AppContext'
 import { getDestination } from '../data/destinations'
 import { ORIGINS } from '../data/taxonomy'
+import { resolveOrigin } from '../lib/geolocation'
 import { ADVISORIES } from '../data/content'
 import { recalculatePlan, regenerateDay } from '../lib/itinerary'
 import { savingTips, VERDICT_COPY } from '../lib/pricing'
@@ -48,7 +49,7 @@ export function ItineraryPage() {
   const { trips, updateTrip, deleteTrip, setTripStatus, notify, user, openAuth } = useApp()
   const trip = trips.find((item) => item.id === id)
   const destination = trip ? getDestination(trip.destinationSlug) : undefined
-  const origin = trip ? ORIGINS.find((item) => item.id === trip.originId) ?? ORIGINS[0] : ORIGINS[0]
+  const origin = (trip ? resolveOrigin(trip.originId, trip.originLabel, trip.originLat, trip.originLng) : undefined) ?? ORIGINS[0]
 
   const [tab, setTab] = useState<Tab>('itinerary')
   const [editMode, setEditMode] = useState(false)

@@ -227,6 +227,11 @@ export interface TripPlan {
   createdAt: string
   destinationSlug: string
   originId: string
+  /** Set only when the starting point came from device GPS rather than the city list. */
+  originLabel?: string
+  /** Approximate (3 decimals) GPS origin, so a saved plan is not re-read as Kathmandu. */
+  originLat?: number
+  originLng?: number
   startDate: string
   days: number
   travelers: number
